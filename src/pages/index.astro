@@ -1,17 +1,66 @@
 ---
+import { sanityClient } from 'sanity:client'
 
+const projects = await sanityClient.fetch(`
+  *[_type == "project" && hidden != true] | order(order asc) {
+    _id,
+    headline,
+    tags,
+    brand,
+    projectName,
+    role,
+    agency,
+    description
+  }
+`)
 ---
 
 <html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+
+    <meta name="robots" content="noindex, nofollow" />
+
+    <title>The Book of MT</title>
+  </head>
+
+  <body>
+    <main>
+      {
+        projects.map((project) => (
+          <section>
+
+            <h2>{project.headline}</h2>
+
+            <div>
+              {project.tags?.map((tag) => (
+                <span>{tag} </span>
+              ))}
+            </div>
+
+            <hr />
+
+            <div>
+              <p>Brand: {project.brand}</p>
+              <p>Project: {project.projectName}</p>
+              <p>Role: {project.role}</p>
+              <p>Agency: {project.agency}</p>
+            </div>
+
+            <div>
+              {project.description?.map((block) =>
+                block._type === 'block' ? (
+                  <p>
+                    {block.children?.map((child) => child.text).join('')}
+                  </p>
+                ) : null
+              )}
+            </div>
+
+          </section>
+        ))
+      }
+    </main>
+  </body>
 </html>
