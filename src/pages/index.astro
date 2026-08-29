@@ -1,11 +1,28 @@
 ---
 import { sanityClient } from 'sanity:client'
+import Layout from '../layouts/Layout.astro'
 
 const projects = await sanityClient.fetch(`
   *[_type == "project" && hidden != true] | order(order asc) {
     _id,
     headline,
     tags,
+    media[] {
+      _key,
+      mediaType,
+      width,
+      alt,
+      image {
+        asset-> {
+          url
+        }
+      },
+      video {
+        asset-> {
+          url
+        }
+      }
+    },
     brand,
     projectName,
     role,
@@ -15,52 +32,211 @@ const projects = await sanityClient.fetch(`
 `)
 ---
 
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width" />
+<Layout>
+  <main>
+    {
+      projects.map((project) => (
+        <section class="project">
 
-    <meta name="robots" content="noindex, nofollow" />
+          <h2>{project.headline}</h2>
 
-    <title>The Book of MT</title>
-  </head>
+          <div class="tags">
+            {project.tags?.map((tag) => (
+              <span>{tag}</span>
+            ))}
+          </div>
 
-  <body>
-    <main>
-      {
-        projects.map((project) => (
-          <section>
+          <div class="media-grid">
+            {project.media?.map((item) => (
+              <div
+                class:list={[
+                  'media-item',
+                  item.width === 'half' ? 'half' : 'full'
+                ]}
+              >
+                {
+                  item.mediaType === 'video' && item.video?.asset?.url ? (
+                    <video autoplay muted loop playsinline>
+                      <source src={item.video.asset.url} />
+                    </video>
+                  ) : item.image?.asset?.url ? (
+                    <img
+                      src={item.image.asset.url}
+                      alt={item.alt || ''}
+                      loading="lazy"
+                    />
+                  ) : null
+                }
+              </div>
+            ))}
+          </div>
 
-            <h2>{project.headline}</h2>
+          <div class="meta">
+  <p>Brand: {project.brand}</p>
+  <p>Project: {project.projectName}</p>
+  <p class="secondary-meta">Role: {project.role}</p>
+  <p class="secondary-meta">Agency: {project.agency}</p>
+</div>
 
-            <div>
-              {project.tags?.map((tag) => (
-                <span>{tag} </span>
-              ))}
-            </div>
+          <div class="description">
+            {project.description?.map((block) =>
+              block._type === 'block' ? (
+                <p>
+                  {block.children?.map((child) => child.text).join('')}
+                </p>
+              ) : null
+            )}
+          </div>
 
-            <hr />
+        </section>
+      ))
+    }
+  </main>
+</Layout>
 
-            <div>
-              <p>Brand: {project.brand}</p>
-              <p>Project: {project.projectName}</p>
-              <p>Role: {project.role}</p>
-              <p>Agency: {project.agency}</p>
-            </div>
+<style>
+.project {
+  padding: 190px 60px 120px;
+}
 
-            <div>
-              {project.description?.map((block) =>
-                block._type === 'block' ? (
-                  <p>
-                    {block.children?.map((child) => child.text).join('')}
-                  </p>
-                ) : null
-              )}
-            </div>
+h2 {
+  width: min(720px, 90%);
+  margin: 0 auto 24px;
 
-          </section>
-        ))
-      }
-    </main>
-  </body>
-</html>
+  font-family: 'Cooper', serif;
+  font-size: 52px;
+  font-weight: 300;
+  line-height: 0.98;
+  text-align: center;
+}
+
+.tags {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+
+  margin-bottom: 28px;
+}
+
+.tags span {
+  padding: 10px 13px 8px;
+
+  border: 1px solid #292929;
+  border-radius: 4px;
+  background: #111;
+
+  font-size: 10px;
+  line-height: 1;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+
+  color: #aaa;
+}
+
+.media-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 26px;
+}
+
+.media-item.full {
+  grid-column: 1 / -1;
+}
+
+.media-item.half {
+  grid-column: span 1;
+}
+
+.media-item img,
+.media-item video {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.meta {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 26px;
+
+  margin-top: 26px;
+
+  font-size: 13px;
+  line-height: 1.4;
+  color: #aaa;
+}
+
+.meta p {
+  margin: 0;
+}
+
+.description {
+  width: min(720px, 100%);
+  margin: 58px auto 0;
+
+  font-size: 15px;
+  line-height: 1.65;
+  color: #888;
+}
+
+.description p {
+  margin: 0 0 18px;
+}
+
+@media (max-width: 700px) {
+  .project {
+    padding: 125px 20px 80px;
+  }
+
+  h2 {
+    width: 100%;
+    margin-bottom: 20px;
+
+    font-size: 36px;
+    line-height: 1;
+  }
+
+  .tags {
+    gap: 7px;
+    margin-bottom: 22px;
+  }
+
+  .tags span {
+    padding: 8px 10px 7px;
+    font-size: 9px;
+  }
+
+.media-grid {
+  grid-template-columns: 1fr;
+  gap: 12px;
+
+  width: calc(100% + 40px);
+  margin-left: -20px;
+  margin-right: -20px;
+}
+  .media-item.full,
+  .media-item.half {
+    grid-column: 1;
+  }
+
+  .meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+
+    margin-top: 18px;
+
+    font-size: 11px;
+  }
+
+  .secondary-meta {
+    display: none;
+  }
+
+  .description {
+    margin-top: 42px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+}
+</style>

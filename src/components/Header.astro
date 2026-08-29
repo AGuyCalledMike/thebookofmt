@@ -1,0 +1,193 @@
+---
+import { sanityClient } from 'sanity:client'
+
+const settings = await sanityClient.fetch(`
+  *[_type == "siteSettings"][0] {
+    email
+  }
+`)
+---
+
+<header class="site-header">
+  <a class="eyes" href="/" aria-label="Home">
+    <span class="eye">
+      <span class="pupil"></span>
+    </span>
+
+    <span class="eye">
+      <span class="pupil"></span>
+    </span>
+  </a>
+
+  <a href="/">Home</a>
+  <a href="/info">Info</a>
+  <a href="/playground">Playground</a>
+
+  <button
+    class="contact"
+    type="button"
+    data-email={settings?.email}
+  >
+    Contact
+  </button>
+
+  <a href="#top">Back to Top</a>
+</header>
+
+<style>
+  .site-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+
+    display: grid;
+    grid-template-columns: auto repeat(5, 1fr);
+    align-items: center;
+
+    width: 100%;
+    padding: 30px 36px;
+
+    font-family: 'Aeonik Fono', monospace;
+    font-size: 14px;
+
+    pointer-events: none;
+  }
+
+  .site-header a,
+  .site-header button {
+    color: #888;
+    text-decoration: none;
+    pointer-events: auto;
+
+    transition: color 150ms ease;
+  }
+
+  .site-header > a:not(.eyes),
+  .site-header > button {
+    justify-self: center;
+  }
+
+  .site-header a:hover,
+  .site-header button:hover {
+    color: white;
+  }
+
+  .contact {
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .eyes {
+    display: flex;
+    gap: 6px;
+    justify-self: start;
+  }
+
+  .eye {
+    position: relative;
+    display: block;
+
+    width: 22px;
+    height: 22px;
+
+    border-radius: 50%;
+    background: white;
+  }
+
+  .pupil {
+    position: absolute;
+    top: 7px;
+    left: 7px;
+
+    width: 8px;
+    height: 8px;
+
+    border-radius: 50%;
+    background: black;
+
+    transform: translate(0, 0);
+  }
+
+  @media (max-width: 700px) {
+    .site-header {
+      grid-template-columns: auto 1fr 1fr 1fr;
+      gap: 14px;
+      padding: 20px;
+
+      font-size: 12px;
+    }
+
+    .site-header > :nth-child(5),
+    .site-header > :nth-child(6) {
+      display: none;
+    }
+
+    .eye {
+      width: 18px;
+      height: 18px;
+    }
+
+    .pupil {
+      top: 6px;
+      left: 6px;
+
+      width: 6px;
+      height: 6px;
+    }
+  }
+</style>
+
+<script>
+  const eyes = document.querySelectorAll('.eye')
+
+  window.addEventListener('pointermove', (event) => {
+    eyes.forEach((eye) => {
+      const pupil = eye.querySelector('.pupil')
+      if (!(pupil instanceof HTMLElement)) return
+
+      const rect = eye.getBoundingClientRect()
+
+      const eyeX = rect.left + rect.width / 2
+      const eyeY = rect.top + rect.height / 2
+
+      const angle = Math.atan2(
+        event.clientY - eyeY,
+        event.clientX - eyeX
+      )
+
+      const distance = 4
+
+      const x = Math.cos(angle) * distance
+      const y = Math.sin(angle) * distance
+
+      pupil.style.transform = `translate(${x}px, ${y}px)`
+    })
+  })
+
+  const contactButton = document.querySelector('.contact')
+
+  contactButton?.addEventListener('click', async () => {
+    if (!(contactButton instanceof HTMLElement)) return
+
+    const email = contactButton.dataset.email
+    if (!email) return
+
+    try {
+      await navigator.clipboard.writeText(email)
+
+      const originalText = contactButton.textContent
+
+      contactButton.textContent = 'Copied'
+
+      window.setTimeout(() => {
+        contactButton.textContent = originalText
+      }, 1200)
+    } catch {
+      console.error('Could not copy email address.')
+    }
+  })
+</script>

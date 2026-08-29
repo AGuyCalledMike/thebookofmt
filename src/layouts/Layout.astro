@@ -1,0 +1,86 @@
+---
+import Header from '../components/Header.astro'
+
+interface Props {
+  title?: string
+}
+
+const {
+  title = 'The Book of MT'
+} = Astro.props
+---
+
+<!doctype html>
+
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1"
+    />
+
+    <meta
+      name="robots"
+      content="noindex, nofollow"
+    />
+
+    <title>{title}</title>
+  </head>
+
+  <body id="top">
+    <Header />
+
+    <slot />
+  </body>
+</html>
+
+<style is:global>
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    background: black;
+  }
+
+  @font-face {
+  font-family: 'Aeonik Fono';
+  src: url('/fonts/AeonikFono-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Aeonik Fono';
+  src: url('/fonts/AeonikFono-Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Cooper';
+  src: url('/fonts/Cooper_Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+body {
+  margin: 0;
+  background: black;
+  color: white;
+  font-family: 'Aeonik Fono', monospace;
+}
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+</style>
