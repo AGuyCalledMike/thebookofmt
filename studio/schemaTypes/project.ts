@@ -114,12 +114,16 @@ export const projectType = defineType({
             }),
           ],
 
+
+
           preview: {
             select: {
               mediaType: 'mediaType',
               width: 'width',
               image: 'image',
             },
+
+            
 
             prepare({mediaType, width, image}) {
               return {
@@ -131,6 +135,21 @@ export const projectType = defineType({
           },
         },
       ],
+    }),
+
+        defineField({
+      name: 'mobileMediaMode',
+      title: 'Mobile media layout',
+      description: 'Choose how this project’s media appears on mobile.',
+      type: 'string',
+      initialValue: 'stack',
+      options: {
+        list: [
+          {title: 'Stack', value: 'stack'},
+          {title: 'Swipe slideshow', value: 'slideshow'},
+        ],
+        layout: 'radio',
+      },
     }),
 
     defineField({
@@ -157,12 +176,30 @@ export const projectType = defineType({
       type: 'string',
     }),
 
-    defineField({
-      name: 'description',
-      title: 'Description',
-      type: 'array',
-      of: [{type: 'block'}],
-    }),
+   defineField({
+  name: 'description',
+  title: 'Short description',
+  description: 'The concise version shown by default on the website.',
+  type: 'array',
+  of: [{type: 'block'}],
+}),
+
+defineField({
+  name: 'enableReadMore',
+  title: 'Enable Read More',
+  description: 'Allow this project to expand into a longer case study.',
+  type: 'boolean',
+  initialValue: false,
+}),
+
+defineField({
+  name: 'longDescription',
+  title: 'Long description',
+  description: 'The full version that replaces the short description when Read More is opened.',
+  type: 'array',
+  of: [{type: 'block'}],
+  hidden: ({parent}) => !parent?.enableReadMore,
+}),
 
     defineField({
       name: 'order',

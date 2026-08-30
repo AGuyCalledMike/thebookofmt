@@ -27,7 +27,10 @@ const projects = await sanityClient.fetch(`
     projectName,
     role,
     agency,
-    description
+description,
+mobileMediaMode,
+enableReadMore,
+longDescription
   }
 `)
 ---
@@ -46,13 +49,18 @@ const projects = await sanityClient.fetch(`
             ))}
           </div>
 
-          <div class="media-grid">
-            {project.media?.map((item) => (
-              <div
-                class:list={[
-                  'media-item',
-                  item.width === 'half' ? 'half' : 'full'
-                ]}
+    <div
+  class:list={[
+    'media-grid',
+    project.mobileMediaMode === 'slideshow' && 'mobile-slideshow'
+  ]}
+>
+  {project.media?.map((item) => (
+    <div
+      class:list={[
+        'media-item',
+        item.width === 'half' ? 'half' : 'full'
+      ]}
               >
                 {
                   item.mediaType === 'video' && item.video?.asset?.url ? (
@@ -78,15 +86,52 @@ const projects = await sanityClient.fetch(`
   <p class="secondary-meta">Agency: {project.agency}</p>
 </div>
 
-          <div class="description">
-            {project.description?.map((block) =>
-              block._type === 'block' ? (
-                <p>
-                  {block.children?.map((child) => child.text).join('')}
-                </p>
-              ) : null
-            )}
-          </div>
+        <div
+  class="description"
+  data-project-description
+>
+  <div
+    class="description-version short-description"
+    data-short-description
+  >
+    {project.description?.map((block) =>
+      block._type === 'block' ? (
+        <p>
+          {block.children?.map((child) => child.text).join('')}
+        </p>
+      ) : null
+    )}
+  </div>
+
+  {
+    project.enableReadMore && project.longDescription?.length ? (
+      <>
+        <div
+          class="description-version long-description"
+          data-long-description
+          hidden
+        >
+          {project.longDescription.map((block) =>
+            block._type === 'block' ? (
+              <p>
+                {block.children?.map((child) => child.text).join('')}
+              </p>
+            ) : null
+          )}
+        </div>
+
+        <button
+          class="read-more"
+          type="button"
+          data-read-more
+          aria-expanded="false"
+        >
+          Read more
+        </button>
+      </>
+    ) : null
+  }
+</div>
 
         </section>
       ))
@@ -104,7 +149,7 @@ h2 {
   margin: 0 auto 24px;
 
   font-family: 'Cooper', serif;
-  font-size: 52px;
+  font-size: 42px;
   font-weight: 300;
   line-height: 0.98;
   text-align: center;
@@ -125,8 +170,7 @@ h2 {
   border: 1px solid #292929;
   border-radius: 4px;
   background: #111;
-
-  font-size: 10px;
+  font-size: 8px;
   line-height: 1;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -156,13 +200,13 @@ h2 {
 }
 
 .meta {
-  display: grid;
+  display: grid;  
   grid-template-columns: repeat(4, 1fr);
   gap: 26px;
 
   margin-top: 26px;
 
-  font-size: 13px;
+  font-size: 10px;
   line-height: 1.4;
   color: #aaa;
 }
@@ -175,13 +219,35 @@ h2 {
   width: min(720px, 100%);
   margin: 58px auto 0;
 
-  font-size: 15px;
+  font-size: 13px;
   line-height: 1.65;
   color: #888;
 }
 
 .description p {
   margin: 0 0 18px;
+}
+
+.description-version p:first-child {
+  text-indent: 2em;
+}
+
+.read-more {
+  margin: 12px 0 0;
+  padding: 0;
+
+  border: 0;
+  background: transparent;
+
+  font-family: 'Aeonik Fono', monospace;
+  font-size: inherit;
+  color: #888;
+
+  cursor: pointer;
+}
+
+.read-more:hover {
+  color: white;
 }
 
 @media (max-width: 700px) {
@@ -239,4 +305,114 @@ h2 {
     line-height: 1.6;
   }
 }
+
+@media (max-width: 700px) {
+  .media-grid.mobile-slideshow {
+    display: flex;
+    overflow-x: auto;
+    gap: 0;
+
+    width: calc(100% + 40px);
+    margin-left: -20px;
+    margin-right: -20px;
+
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+  }
+
+  .media-grid.mobile-slideshow::-webkit-scrollbar {
+    display: none;
+  }
+
+  .media-grid.mobile-slideshow .media-item {
+    flex: 0 0 100%;
+    width: 100%;
+    grid-column: auto;
+
+    scroll-snap-align: start;
+  }
+}
 </style>
+
+<script>
+  const descriptions = document.querySelectorAll('[data-project-description]')
+
+  function closeDescription(description: Element) {
+    const short = description.querySelector('[data-short-description]')
+    const long = description.querySelector('[data-long-description]')
+    const button = description.querySelector('[data-read-more]')
+
+    if (!(short instanceof HTMLElement)) return
+    if (!(long instanceof HTMLElement)) return
+    if (!(button instanceof HTMLButtonElement)) return
+
+    short.hidden = false
+    long.hidden = true
+
+    button.textContent = 'Read more'
+    button.setAttribute('aria-expanded', 'false')
+
+    description.removeAttribute('data-expanded')
+  }
+
+  function openDescription(description: Element) {
+    const short = description.querySelector('[data-short-description]')
+    const long = description.querySelector('[data-long-description]')
+    const button = description.querySelector('[data-read-more]')
+
+    if (!(short instanceof HTMLElement)) return
+    if (!(long instanceof HTMLElement)) return
+    if (!(button instanceof HTMLButtonElement)) return
+
+    short.hidden = true
+    long.hidden = false
+
+    button.textContent = 'Read less'
+    button.setAttribute('aria-expanded', 'true')
+
+    description.setAttribute('data-expanded', 'true')
+  }
+
+  descriptions.forEach((description) => {
+    const button = description.querySelector('[data-read-more]')
+
+    if (!(button instanceof HTMLButtonElement)) return
+
+    button.addEventListener('click', () => {
+      const isExpanded = description.hasAttribute('data-expanded')
+
+      if (isExpanded) {
+        closeDescription(description)
+      } else {
+        openDescription(description)
+      }
+    })
+  })
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return
+
+    const expandedDescription = document.querySelector(
+      '[data-project-description][data-expanded]'
+    )
+
+    if (!expandedDescription) return
+
+    const positionBeforeCollapse =
+      expandedDescription.getBoundingClientRect().top
+
+    closeDescription(expandedDescription)
+
+    /*
+      If collapsing the long version would leave the description
+      above the viewport, bring the reader gently back to it.
+    */
+    if (positionBeforeCollapse < 0) {
+      expandedDescription.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      })
+    }
+  })
+</script>
