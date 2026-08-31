@@ -53,20 +53,57 @@ const settings = await sanityClient.fetch(`
     padding: 0;
     border: 0;
     background: transparent;
+
     color: #888;
     font: inherit;
     text-decoration: none;
+
     cursor: pointer;
     pointer-events: auto;
+
     transition: color 150ms ease;
   }
 
   .site-header > button:not(.eyes) {
+    position: relative;
     justify-self: center;
+  }
+
+  .site-header > button:not(.eyes)::after {
+    content: '';
+
+    position: absolute;
+    left: 0;
+    bottom: -4px;
+
+    width: 100%;
+    height: 1px;
+
+    background: currentColor;
+
+    transform: scaleX(0);
+    transform-origin: left;
+
+    transition: transform 220ms ease;
+  }
+
+  .site-header > button:not(.eyes):hover::after {
+    transform: scaleX(1);
   }
 
   .site-header button:hover {
     color: white;
+  }
+
+  :global(html.view-home)
+    .site-header > button[data-view-trigger="home"]:not(.eyes)::after,
+
+  :global(html.view-info)
+    .site-header > button[data-view-trigger="info"]::after,
+
+  :global(html.view-playground)
+    .site-header > button[data-view-trigger="playground"]::after {
+    transform: scaleX(1);
   }
 
   :global(html.view-info) .site-header button {
@@ -86,10 +123,13 @@ const settings = await sanityClient.fetch(`
   .eye {
     position: relative;
     display: block;
+
     width: 19px;
     height: 24px;
+
     border: 1px solid #000;
     border-radius: 50%;
+
     background: #fff;
   }
 
@@ -97,10 +137,13 @@ const settings = await sanityClient.fetch(`
     position: absolute;
     top: 8px;
     left: 6px;
+
     width: 7px;
     height: 7px;
+
     border-radius: 50%;
     background: #000;
+
     transform: translate(0, 0);
   }
 
@@ -143,10 +186,18 @@ const settings = await sanityClient.fetch(`
       const rect = eye.getBoundingClientRect()
       const eyeX = rect.left + rect.width / 2
       const eyeY = rect.top + rect.height / 2
-      const angle = Math.atan2(event.clientY - eyeY, event.clientX - eyeX)
+
+      const angle = Math.atan2(
+        event.clientY - eyeY,
+        event.clientX - eyeX
+      )
+
       const distance = 3.5
 
-      pupil.style.transform = `translate(${Math.cos(angle) * distance}px, ${Math.sin(angle) * distance}px)`
+      const x = Math.cos(angle) * distance
+      const y = Math.sin(angle) * distance
+
+      pupil.style.transform = `translate(${x}px, ${y}px)`
     })
   })
 
@@ -161,6 +212,7 @@ const settings = await sanityClient.fetch(`
 
     try {
       await navigator.clipboard.writeText(email)
+
       const originalText = contactButton.textContent
       contactButton.textContent = 'Copied'
 
@@ -188,8 +240,10 @@ const settings = await sanityClient.fetch(`
   viewTriggers.forEach((trigger) => {
     trigger.addEventListener('click', () => {
       if (!(trigger instanceof HTMLElement)) return
+
       const view = trigger.dataset.viewTrigger
       if (!view) return
+
       showView(view)
     })
   })
@@ -219,6 +273,10 @@ const settings = await sanityClient.fetch(`
     }
 
     const panel = document.querySelector(selector)
-    panel?.scrollTo({ top: 0, behavior: 'smooth' })
+
+    panel?.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    })
   })
 </script>
