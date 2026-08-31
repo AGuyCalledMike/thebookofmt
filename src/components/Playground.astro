@@ -1,0 +1,75 @@
+---
+import { sanityClient } from 'sanity:client'
+
+const items = await sanityClient.fetch(`
+  *[_type == "playgroundItem" && hidden != true] | order(order asc) {
+    _id,
+    mediaType,
+    alt,
+    image {
+      asset-> {
+        url
+      }
+    },
+    video {
+      asset-> {
+        url
+      }
+    }
+  }
+`)
+---
+
+<div class="playground-grid">
+  {
+    items.map((item) => (
+      <div class="playground-item">
+        {
+          item.mediaType === 'video' && item.video?.asset?.url ? (
+            <video autoplay muted loop playsinline>
+              <source src={item.video.asset.url} />
+            </video>
+          ) : item.image?.asset?.url ? (
+            <img
+              src={item.image.asset.url}
+              alt={item.alt || ''}
+              loading="lazy"
+            />
+          ) : null
+        }
+      </div>
+    ))
+  }
+</div>
+
+<style>
+  .playground-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+
+    padding: 120px 40px 40px;
+  }
+
+  .playground-item img,
+  .playground-item video {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  @media (max-width: 900px) {
+    .playground-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 700px) {
+    .playground-grid {
+      grid-template-columns: 1fr;
+      gap: 8px;
+
+      padding: 100px 0 0;
+    }
+  }
+</style>

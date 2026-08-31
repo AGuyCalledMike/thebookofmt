@@ -1,0 +1,128 @@
+---
+import { sanityClient } from 'sanity:client'
+
+const info = await sanityClient.fetch(`
+  *[_type == "info"][0] {
+    bio,
+    clients,
+    experience[] {
+      company,
+      role,
+      years
+    }
+  }
+`)
+---
+
+<div class="info-panel-content">
+  <div class="info-inner">
+    <section class="info-bio">
+      {info?.bio?.map((block) =>
+        block._type === 'block' ? (
+          <p>{block.children?.map((child) => child.text).join('')}</p>
+        ) : null
+      )}
+    </section>
+
+    {
+      info?.clients?.length ? (
+        <section class="info-section">
+          <p class="info-label">Select clients</p>
+          <div class="client-list">
+            {info.clients.map((client) => <span>{client}</span>)}
+          </div>
+        </section>
+      ) : null
+    }
+
+    {
+      info?.experience?.length ? (
+        <section class="info-section">
+          <p class="info-label">Experience</p>
+          <div class="experience-list">
+            {info.experience.map((item) => (
+              <div class="experience-row">
+                <span>{item.company}</span>
+                <span>{item.role}</span>
+                <span>{item.years}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null
+    }
+  </div>
+</div>
+
+<style>
+  .info-panel-content {
+    min-height: 100%;
+    background: #f3efe6;
+    color: #111;
+  }
+
+  .info-inner {
+    min-height: 100%;
+    padding: 150px 60px 80px;
+  }
+
+  .info-bio {
+    width: min(900px, 80%);
+    margin-bottom: 120px;
+    font-family: 'Cooper', serif;
+    font-size: clamp(36px, 5vw, 72px);
+    font-weight: 300;
+    line-height: 1;
+  }
+
+  .info-bio p {
+    margin: 0 0 0.8em;
+  }
+
+  .info-section {
+    margin-top: 70px;
+    font-family: 'Aeonik Fono', monospace;
+    font-size: 13px;
+  }
+
+  .info-label {
+    margin: 0 0 24px;
+    color: #777;
+  }
+
+  .client-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 24px;
+  }
+
+  .experience-list {
+    display: grid;
+    gap: 12px;
+  }
+
+  .experience-row {
+    display: grid;
+    grid-template-columns: 2fr 2fr 1fr;
+    gap: 20px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(0, 0, 0, 0.15);
+  }
+
+  @media (max-width: 700px) {
+    .info-inner {
+      padding: 120px 20px 60px;
+    }
+
+    .info-bio {
+      width: 100%;
+      margin-bottom: 80px;
+      font-size: 38px;
+    }
+
+    .experience-row {
+      grid-template-columns: 1fr;
+      gap: 3px;
+    }
+  }
+</style>

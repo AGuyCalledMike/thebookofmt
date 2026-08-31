@@ -9,29 +9,24 @@ const settings = await sanityClient.fetch(`
 ---
 
 <header class="site-header">
-  <a class="eyes" href="/" aria-label="Home">
+  <button class="eyes" type="button" data-view-trigger="home" aria-label="Home">
     <span class="eye">
       <span class="pupil"></span>
     </span>
-
     <span class="eye">
       <span class="pupil"></span>
     </span>
-  </a>
+  </button>
 
-  <a href="/">Home</a>
-  <a href="/info">Info</a>
-  <a href="/playground">Playground</a>
+  <button type="button" data-view-trigger="home">Home</button>
+  <button type="button" data-view-trigger="info">Info</button>
+  <button type="button" data-view-trigger="playground">Playground</button>
 
-  <button
-    class="contact"
-    type="button"
-    data-email={settings?.email}
-  >
+  <button class="contact" type="button" data-email={settings?.email}>
     Contact
   </button>
 
-  <a href="#top">Back to Top</a>
+  <button class="back-to-top" type="button">Back to Top</button>
 </header>
 
 <style>
@@ -54,31 +49,32 @@ const settings = await sanityClient.fetch(`
     pointer-events: none;
   }
 
-  .site-header a,
   .site-header button {
+    padding: 0;
+    border: 0;
+    background: transparent;
     color: #888;
+    font: inherit;
     text-decoration: none;
+    cursor: pointer;
     pointer-events: auto;
-
     transition: color 150ms ease;
   }
 
-  .site-header > a:not(.eyes),
-  .site-header > button {
+  .site-header > button:not(.eyes) {
     justify-self: center;
   }
 
-  .site-header a:hover,
   .site-header button:hover {
     color: white;
   }
 
-  .contact {
-    padding: 0;
-    border: 0;
-    background: none;
-    font: inherit;
-    cursor: pointer;
+  :global(html.view-info) .site-header button {
+    color: #111;
+  }
+
+  :global(html.view-info) .site-header button:hover {
+    color: #777;
   }
 
   .eyes {
@@ -90,25 +86,21 @@ const settings = await sanityClient.fetch(`
   .eye {
     position: relative;
     display: block;
-
-    width: 22px;
-    height: 22px;
-
+    width: 19px;
+    height: 24px;
+    border: 1px solid #000;
     border-radius: 50%;
-    background: white;
+    background: #fff;
   }
 
   .pupil {
     position: absolute;
-    top: 7px;
-    left: 7px;
-
-    width: 8px;
-    height: 8px;
-
+    top: 8px;
+    left: 6px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
-    background: black;
-
+    background: #000;
     transform: translate(0, 0);
   }
 
@@ -117,8 +109,7 @@ const settings = await sanityClient.fetch(`
       grid-template-columns: auto 1fr 1fr 1fr;
       gap: 14px;
       padding: 20px;
-
-      font-size: 12px;
+      font-size: 10px;
     }
 
     .site-header > :nth-child(5),
@@ -127,14 +118,13 @@ const settings = await sanityClient.fetch(`
     }
 
     .eye {
-      width: 18px;
-      height: 18px;
+      width: 16px;
+      height: 20px;
     }
 
     .pupil {
-      top: 6px;
-      left: 6px;
-
+      top: 7px;
+      left: 5px;
       width: 6px;
       height: 6px;
     }
@@ -142,6 +132,7 @@ const settings = await sanityClient.fetch(`
 </style>
 
 <script>
+  // Eyes follow cursor
   const eyes = document.querySelectorAll('.eye')
 
   window.addEventListener('pointermove', (event) => {
@@ -150,24 +141,16 @@ const settings = await sanityClient.fetch(`
       if (!(pupil instanceof HTMLElement)) return
 
       const rect = eye.getBoundingClientRect()
-
       const eyeX = rect.left + rect.width / 2
       const eyeY = rect.top + rect.height / 2
+      const angle = Math.atan2(event.clientY - eyeY, event.clientX - eyeX)
+      const distance = 3.5
 
-      const angle = Math.atan2(
-        event.clientY - eyeY,
-        event.clientX - eyeX
-      )
-
-      const distance = 4
-
-      const x = Math.cos(angle) * distance
-      const y = Math.sin(angle) * distance
-
-      pupil.style.transform = `translate(${x}px, ${y}px)`
+      pupil.style.transform = `translate(${Math.cos(angle) * distance}px, ${Math.sin(angle) * distance}px)`
     })
   })
 
+  // Contact copies email
   const contactButton = document.querySelector('.contact')
 
   contactButton?.addEventListener('click', async () => {
@@ -178,9 +161,7 @@ const settings = await sanityClient.fetch(`
 
     try {
       await navigator.clipboard.writeText(email)
-
       const originalText = contactButton.textContent
-
       contactButton.textContent = 'Copied'
 
       window.setTimeout(() => {
@@ -189,5 +170,55 @@ const settings = await sanityClient.fetch(`
     } catch {
       console.error('Could not copy email address.')
     }
+  })
+
+  // Three-panel navigation
+  const viewTriggers = document.querySelectorAll('[data-view-trigger]')
+
+  function showView(view) {
+    document.documentElement.classList.remove(
+      'view-info',
+      'view-home',
+      'view-playground'
+    )
+
+    document.documentElement.classList.add(`view-${view}`)
+  }
+
+  viewTriggers.forEach((trigger) => {
+    trigger.addEventListener('click', () => {
+      if (!(trigger instanceof HTMLElement)) return
+      const view = trigger.dataset.viewTrigger
+      if (!view) return
+      showView(view)
+    })
+  })
+
+  // Escape returns to Projects
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return
+
+    if (
+      document.documentElement.classList.contains('view-info') ||
+      document.documentElement.classList.contains('view-playground')
+    ) {
+      showView('home')
+    }
+  })
+
+  // Back to top applies to the currently visible panel
+  const backToTop = document.querySelector('.back-to-top')
+
+  backToTop?.addEventListener('click', () => {
+    let selector = '[data-scroll-panel="home"]'
+
+    if (document.documentElement.classList.contains('view-playground')) {
+      selector = '[data-scroll-panel="playground"]'
+    } else if (document.documentElement.classList.contains('view-info')) {
+      selector = '.info-view'
+    }
+
+    const panel = document.querySelector(selector)
+    panel?.scrollTo({ top: 0, behavior: 'smooth' })
   })
 </script>
