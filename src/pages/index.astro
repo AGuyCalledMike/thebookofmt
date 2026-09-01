@@ -87,21 +87,38 @@ const projects = await sanityClient.fetch(`
                     <div
                       class="project-slideshow"
                       data-project-slideshow
-                      role="button"
-                      tabindex="0"
-                      aria-label="Advance slideshow"
                     >
-                      {item.slides.map((slide, index) => (
-                        <img
-                          src={slide.asset?.url}
-                          alt={slide.alt || ''}
-                          loading="lazy"
-                          class:list={[
-                            'slideshow-slide',
-                            index === 0 && 'is-active'
-                          ]}
-                        />
-                      ))}
+                      <div class="slideshow-viewport">
+                        <div class="slideshow-track" data-slideshow-track>
+                          {item.slides.map((slide) => (
+                            <div class="slideshow-slide">
+                              <img
+                                src={slide.asset?.url}
+                                alt={slide.alt || ''}
+                                loading="lazy"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <button
+                        class="slideshow-control slideshow-control-prev"
+                        type="button"
+                        data-slideshow-prev
+                        aria-label="Previous slide"
+                      >
+                        <span aria-hidden="true">←</span>
+                      </button>
+
+                      <button
+                        class="slideshow-control slideshow-control-next"
+                        type="button"
+                        data-slideshow-next
+                        aria-label="Next slide"
+                      >
+                        <span aria-hidden="true">→</span>
+                      </button>
                     </div>
                   ) : item.image?.asset?.url ? (
                     <img
@@ -123,7 +140,10 @@ const projects = await sanityClient.fetch(`
           </div>
 
           <div class="description" data-project-description>
-            <div class="description-version short-description" data-short-description>
+            <div
+              class="description-version short-description"
+              data-short-description
+            >
               {project.description?.map((block) =>
                 block._type === 'block' ? (
                   <p>
@@ -217,32 +237,95 @@ const projects = await sanityClient.fetch(`
     grid-column: span 1;
   }
 
-  .media-item img,
-  .media-item video {
+  .media-item > img,
+  .media-item > video {
     display: block;
     width: 100%;
     height: auto;
   }
 
+  /* Individual slideshow blocks */
   .project-slideshow {
     position: relative;
     width: 100%;
-    cursor: pointer;
+    overflow: hidden;
   }
 
-  .project-slideshow:focus-visible {
-    outline: 1px solid currentColor;
-    outline-offset: 4px;
+  .slideshow-viewport {
+    width: 100%;
+    overflow: hidden;
   }
 
-  .project-slideshow .slideshow-slide {
-    display: none;
+  .slideshow-track {
+    display: flex;
+    width: 100%;
+    transition: transform 500ms cubic-bezier(.76, 0, .24, 1);
+    will-change: transform;
+  }
+
+  .slideshow-slide {
+    flex: 0 0 100%;
+    width: 100%;
+  }
+
+  .slideshow-slide img {
+    display: block;
     width: 100%;
     height: auto;
   }
 
-  .project-slideshow .slideshow-slide.is-active {
-    display: block;
+  .slideshow-control {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: 2;
+
+    width: 50%;
+    padding: 0;
+
+    border: 0;
+    background: transparent;
+
+    color: white;
+    cursor: pointer;
+  }
+
+  .slideshow-control-prev {
+    left: 0;
+  }
+
+  .slideshow-control-next {
+    right: 0;
+  }
+
+  .slideshow-control span {
+    position: absolute;
+    top: 50%;
+
+    font-family: 'Aeonik Fono', monospace;
+    font-size: 26px;
+    line-height: 1;
+
+    opacity: 0;
+    transform: translateY(-50%);
+    transition: opacity 150ms ease;
+  }
+
+  .slideshow-control-prev span {
+    left: 22px;
+  }
+
+  .slideshow-control-next span {
+    right: 22px;
+  }
+
+  .slideshow-control:hover span,
+  .slideshow-control:focus-visible span {
+    opacity: 1;
+  }
+
+  .slideshow-control:focus-visible {
+    outline: none;
   }
 
   .meta {
@@ -348,6 +431,11 @@ const projects = await sanityClient.fetch(`
       scroll-snap-align: start;
     }
 
+    /* No hover arrows on touch-sized screens */
+    .slideshow-control span {
+      display: none;
+    }
+
     .meta {
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 16px;
@@ -365,9 +453,16 @@ const projects = await sanityClient.fetch(`
       line-height: 1.6;
     }
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    .slideshow-track {
+      transition: none;
+    }
+  }
 </style>
 
 <script>
+  // Read more / read less
   const descriptions = document.querySelectorAll('[data-project-description]')
 
   function closeDescription(description) {
@@ -404,11 +499,17 @@ const projects = await sanityClient.fetch(`
 
   descriptions.forEach((description) => {
     const button = description.querySelector('[data-read-more]')
+
     if (!(button instanceof HTMLButtonElement)) return
 
     button.addEventListener('click', () => {
       const isExpanded = description.hasAttribute('data-expanded')
-      isExpanded ? closeDescription(description) : openDescription(description)
+
+      if (isExpanded) {
+        closeDescription(description)
+      } else {
+        openDescription(description)
+      }
     })
   })
 
@@ -434,29 +535,40 @@ const projects = await sanityClient.fetch(`
     }
   })
 
+  // Individual project media slideshows
   const slideshows = document.querySelectorAll('[data-project-slideshow]')
 
   slideshows.forEach((slideshow) => {
+    const track = slideshow.querySelector('[data-slideshow-track]')
     const slides = Array.from(
       slideshow.querySelectorAll('.slideshow-slide')
     )
+    const previousButton = slideshow.querySelector('[data-slideshow-prev]')
+    const nextButton = slideshow.querySelector('[data-slideshow-next]')
 
+    if (!(track instanceof HTMLElement)) return
+    if (!(previousButton instanceof HTMLButtonElement)) return
+    if (!(nextButton instanceof HTMLButtonElement)) return
     if (slides.length < 2) return
 
     let current = 0
     let interval
 
-    function showSlide(index) {
-      slides.forEach((slide) => {
-        slide.classList.remove('is-active')
-      })
+    function renderSlide() {
+      track.style.transform = `translateX(-${current * 100}%)`
+    }
 
+    function showSlide(index) {
       current = (index + slides.length) % slides.length
-      slides[current].classList.add('is-active')
+      renderSlide()
     }
 
     function nextSlide() {
       showSlide(current + 1)
+    }
+
+    function previousSlide() {
+      showSlide(current - 1)
     }
 
     function startAutoplay() {
@@ -470,20 +582,19 @@ const projects = await sanityClient.fetch(`
       }
     }
 
-    function advanceManually() {
+    previousButton.addEventListener('click', (event) => {
+      event.stopPropagation()
       stopAutoplay()
-      nextSlide()
-    }
-
-    slideshow.addEventListener('click', advanceManually)
-
-    slideshow.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault()
-        advanceManually()
-      }
+      previousSlide()
     })
 
+    nextButton.addEventListener('click', (event) => {
+      event.stopPropagation()
+      stopAutoplay()
+      nextSlide()
+    })
+
+    renderSlide()
     startAutoplay()
   })
 </script>
