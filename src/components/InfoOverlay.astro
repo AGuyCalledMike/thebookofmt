@@ -1,10 +1,64 @@
 ---
 import { sanityClient } from 'sanity:client'
+import RichText from './RichText.astro'
 
 const info = await sanityClient.fetch(`
   *[_type == "info"][0] {
-    bio,
+    bio[] {
+      ...,
+      children[] {
+        ...
+      },
+      markDefs[] {
+        ...,
+        _type == "projectLink" => {
+          project-> {
+            title,
+            "slug": slug.current
+          }
+        }
+      }
+    },
+
+    timeline[] {
+      year,
+      text,
+      content[] {
+        ...,
+        children[] {
+          ...
+        },
+        markDefs[] {
+          ...,
+          _type == "projectLink" => {
+            project-> {
+              title,
+              "slug": slug.current
+            }
+          }
+        }
+      }
+    },
+
+    alongTheWay,
+    alongTheWayRich[] {
+      ...,
+      children[] {
+        ...
+      },
+      markDefs[] {
+        ...,
+        _type == "projectLink" => {
+          project-> {
+            title,
+            "slug": slug.current
+          }
+        }
+      }
+    },
+
     clients,
+
     experience[] {
       company,
       role,
@@ -16,41 +70,81 @@ const info = await sanityClient.fetch(`
 
 <div class="info-panel-content">
   <div class="info-inner">
-    <section class="info-bio">
-      {info?.bio?.map((block) =>
-        block._type === 'block' ? (
-          <p>{block.children?.map((child) => child.text).join('')}</p>
-        ) : null
-      )}
-    </section>
 
-    {
-      info?.clients?.length ? (
-        <section class="info-section">
-          <p class="info-label">Select clients</p>
-          <div class="client-list">
-            {info.clients.map((client) => <span>{client}</span>)}
-          </div>
-        </section>
-      ) : null
-    }
+    <div class="info-top">
+      <section class="info-bio">
+        <RichText blocks={info?.bio} />
+      </section>
 
-    {
-      info?.experience?.length ? (
-        <section class="info-section">
-          <p class="info-label">Experience</p>
-          <div class="experience-list">
-            {info.experience.map((item) => (
-              <div class="experience-row">
-                <span>{item.company}</span>
-                <span>{item.role}</span>
-                <span>{item.years}</span>
+      {
+        info?.timeline?.length ? (
+          <aside class="timeline">
+            {info.timeline.map((item) => (
+              <div class="timeline-row">
+                <span class="timeline-year">{item.year}</span>
+
+                <div class="timeline-text">
+                  {
+                    item.content?.length ? (
+                      <RichText blocks={item.content} />
+                    ) : (
+                      <p>{item.text}</p>
+                    )
+                  }
+                </div>
               </div>
             ))}
-          </div>
+          </aside>
+        ) : null
+      }
+    </div>
+
+    {
+      info?.alongTheWayRich?.length ? (
+        <section class="along-the-way">
+          <RichText blocks={info.alongTheWayRich} />
+        </section>
+      ) : info?.alongTheWay ? (
+        <section class="along-the-way">
+          <p>{info.alongTheWay}</p>
         </section>
       ) : null
     }
+
+    <div class="info-details">
+      {
+        info?.clients?.length ? (
+          <section class="info-section">
+            <p class="info-label">Select clients</p>
+
+            <div class="client-list">
+              {info.clients.map((client) => (
+                <span>{client}</span>
+              ))}
+            </div>
+          </section>
+        ) : null
+      }
+
+      {
+        info?.experience?.length ? (
+          <section class="info-section">
+            <p class="info-label">Experience</p>
+
+            <div class="experience-list">
+              {info.experience.map((item) => (
+                <div class="experience-row">
+                  <span class="experience-company">{item.company}</span>
+                  <span class="experience-role">{item.role}</span>
+                  <span class="experience-years">{item.years}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null
+      }
+    </div>
+
   </div>
 </div>
 
@@ -66,63 +160,261 @@ const info = await sanityClient.fetch(`
     padding: 150px 60px 80px;
   }
 
-  .info-bio {
-    width: min(900px, 80%);
-    margin-bottom: 120px;
-    font-family: 'Cooper', serif;
-    font-size: clamp(36px, 5vw, 72px);
-    font-weight: 300;
-    line-height: 1;
+  .info-top {
+    display: grid;
+    grid-template-columns: minmax(0, 1.9fr) minmax(280px, 0.9fr);
+    gap: 72px;
+    align-items: start;
+    margin-bottom: 150px;
   }
 
-  .info-bio p {
+  .info-bio {
+    font-family: 'Cooper', serif;
+    font-size: clamp(42px, 5vw, 74px);
+    font-weight: 300;
+    line-height: 0.98;
+    letter-spacing: -0.02em;
+  }
+
+  .info-bio :global(p) {
     margin: 0 0 0.8em;
   }
 
-  .info-section {
-    margin-top: 70px;
+  .info-bio :global(p:last-child) {
+    margin-bottom: 0;
+  }
+
+  .timeline {
+    padding-top: 6px;
     font-family: 'Aeonik Fono', monospace;
-    font-size: 13px;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .timeline-row {
+    display: grid;
+    grid-template-columns: 92px minmax(0, 1fr);
+    gap: 16px;
+    padding: 10px 0;
+    border-top: 1px solid rgba(0, 0, 0, 0.14);
+  }
+
+  .timeline-row:last-child {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.14);
+  }
+
+  .timeline-year {
+    color: #777;
+  }
+
+  .timeline-text {
+    min-width: 0;
+  }
+
+  .timeline-text :global(p) {
+    margin: 0;
+  }
+
+  .along-the-way {
+    width: min(900px, 80%);
+    margin: 0 0 120px;
+    font-family: 'Cooper', serif;
+    font-size: clamp(28px, 3vw, 44px);
+    font-weight: 300;
+    line-height: 1.05;
+  }
+
+  .along-the-way :global(p) {
+    margin: 0;
+  }
+
+  .info-panel-content :global(.rich-link) {
+    color: #82ff00;
+    text-decoration: none;
+    transition: opacity 150ms ease;
+  }
+
+  .info-panel-content :global(.rich-link:hover) {
+    opacity: 0.55;
+  }
+
+  .info-panel-content :global(.rich-link:focus-visible) {
+    outline: 1px solid currentColor;
+    outline-offset: 3px;
+  }
+
+  .info-details {
+    border-top: 1px solid rgba(0, 0, 0, 0.18);
+  }
+
+  .info-section {
+    display: grid;
+    grid-template-columns: minmax(120px, 1fr) 3fr;
+    gap: 40px;
+    padding: 28px 0 64px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.18);
+    font-family: 'Aeonik Fono', monospace;
+    font-size: 12px;
+    line-height: 1.45;
   }
 
   .info-label {
-    margin: 0 0 24px;
+    margin: 0;
     color: #777;
   }
 
   .client-list {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px 24px;
+    gap: 8px 24px;
+  }
+
+  .client-list span {
+    white-space: nowrap;
   }
 
   .experience-list {
-    display: grid;
-    gap: 12px;
+    min-width: 0;
   }
 
   .experience-row {
     display: grid;
-    grid-template-columns: 2fr 2fr 1fr;
-    gap: 20px;
-    padding-top: 12px;
-    border-top: 1px solid rgba(0, 0, 0, 0.15);
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "company years"
+      "role years";
+    gap: 4px 24px;
+    padding: 18px 0;
+    border-top: 1px solid rgba(0, 0, 0, 0.12);
+  }
+
+  .experience-row:first-child {
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  .experience-company {
+    grid-area: company;
+  }
+
+  .experience-role {
+    grid-area: role;
+    color: #777;
+  }
+
+  .experience-years {
+    grid-area: years;
+    align-self: start;
+    text-align: right;
+    white-space: nowrap;
+    color: #777;
+  }
+
+  @media (max-width: 1000px) {
+    .info-top {
+      grid-template-columns: 1fr;
+      gap: 80px;
+    }
+
+    .timeline {
+      max-width: 700px;
+    }
+  }
+
+  @media (max-width: 900px) {
+    .info-section {
+      grid-template-columns: 1fr;
+      gap: 28px;
+    }
   }
 
   @media (max-width: 700px) {
     .info-inner {
-      padding: 120px 20px 60px;
+      padding: 120px 20px 50px;
+    }
+
+    .info-top {
+      gap: 64px;
+      margin-bottom: 100px;
     }
 
     .info-bio {
+      font-size: 38px;
+      line-height: 1;
+      letter-spacing: -0.015em;
+    }
+
+    .timeline {
+      font-size: 11px;
+    }
+
+    .timeline-row {
+      grid-template-columns: 78px minmax(0, 1fr);
+      gap: 12px;
+      padding: 9px 0;
+    }
+
+    .along-the-way {
       width: 100%;
       margin-bottom: 80px;
-      font-size: 38px;
+      font-size: 28px;
+    }
+
+    .info-section {
+      gap: 22px;
+      padding: 22px 0 42px;
+      font-size: 11px;
+    }
+
+    .client-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px 16px;
     }
 
     .experience-row {
       grid-template-columns: 1fr;
-      gap: 3px;
+      grid-template-areas:
+        "company"
+        "role"
+        "years";
+      gap: 2px;
+      padding: 12px 0;
+    }
+
+    .experience-years {
+      text-align: left;
     }
   }
 </style>
+
+<script>
+  const projectLinks = document.querySelectorAll('[data-info-project-link]')
+
+  projectLinks.forEach((link) => {
+    link.addEventListener('click', (event) => {
+      if (!(link instanceof HTMLAnchorElement)) return
+
+      const slug = link.dataset.projectSlug
+      if (!slug) return
+
+      const project = document.getElementById(`project-${slug}`)
+      if (!project) return
+
+      event.preventDefault()
+
+      document.documentElement.classList.remove(
+        'view-info',
+        'view-playground'
+      )
+      document.documentElement.classList.add('view-home')
+
+      window.setTimeout(() => {
+        project.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        })
+      }, 350)
+    })
+  })
+</script>

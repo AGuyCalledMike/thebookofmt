@@ -1,0 +1,70 @@
+---
+interface Props {
+  blocks?: any[]
+}
+
+const {blocks = []} = Astro.props
+---
+
+{
+  blocks?.map((block) =>
+    block?._type === 'block' ? (
+      <p>
+        {block.children?.map((child) => {
+          const marks = child.marks || []
+
+          const annotation = block.markDefs?.find((definition) =>
+            marks.includes(definition._key)
+          )
+
+          const isBold = marks.includes('strong')
+          const isItalic = marks.includes('em')
+
+          const text = isBold && isItalic ? (
+            <strong><em>{child.text}</em></strong>
+          ) : isBold ? (
+            <strong>{child.text}</strong>
+          ) : isItalic ? (
+            <em>{child.text}</em>
+          ) : (
+            child.text
+          )
+
+          if (
+            annotation?._type === 'projectLink' &&
+            annotation.project?.slug
+          ) {
+            return (
+              <a
+                class="rich-link"
+                href={`#project-${annotation.project.slug}`}
+                data-info-project-link
+                data-project-slug={annotation.project.slug}
+              >
+                {text}
+              </a>
+            )
+          }
+
+          if (
+            annotation?._type === 'externalLink' &&
+            annotation.href
+          ) {
+            return (
+              <a
+                class="rich-link"
+                href={annotation.href}
+                target={annotation.newTab ? '_blank' : undefined}
+                rel={annotation.newTab ? 'noreferrer' : undefined}
+              >
+                {text}
+              </a>
+            )
+          }
+
+          return text
+        })}
+      </p>
+    ) : null
+  )
+}

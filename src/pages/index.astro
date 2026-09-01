@@ -5,6 +5,7 @@ import Layout from '../layouts/Layout.astro'
 const projects = await sanityClient.fetch(`
   *[_type == "project" && hidden != true] | order(order asc) {
     _id,
+    "slug": slug.current,
     headline,
     tags,
     mobileMediaMode,
@@ -50,7 +51,12 @@ const projects = await sanityClient.fetch(`
   <main>
     {
       projects.map((project) => (
-        <section class="project" data-project>
+        <section
+          class="project"
+          data-project
+          data-project-slug={project.slug}
+          id={project.slug ? `project-${project.slug}` : undefined}
+        >
           <h2>{project.headline}</h2>
 
           <div class="tags">
@@ -170,7 +176,6 @@ const projects = await sanityClient.fetch(`
   h2 {
     width: min(720px, 90%);
     margin: 0 auto 24px;
-
     font-family: 'Cooper', serif;
     font-size: 52px;
     font-weight: 300;
@@ -183,22 +188,18 @@ const projects = await sanityClient.fetch(`
     justify-content: center;
     flex-wrap: wrap;
     gap: 10px;
-
     margin-bottom: 28px;
   }
 
   .tags span {
     padding: 10px 13px 8px;
-
     border: 1px solid #292929;
     border-radius: 4px;
     background: #111;
-
     font-size: 10px;
     line-height: 1;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-
     color: #aaa;
   }
 
@@ -248,9 +249,7 @@ const projects = await sanityClient.fetch(`
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 26px;
-
     margin-top: 26px;
-
     font-size: 13px;
     line-height: 1.4;
     color: #aaa;
@@ -263,7 +262,6 @@ const projects = await sanityClient.fetch(`
   .description {
     width: min(720px, 100%);
     margin: 58px auto 0;
-
     font-size: 15px;
     line-height: 1.65;
     color: #888;
@@ -280,14 +278,11 @@ const projects = await sanityClient.fetch(`
   .read-more {
     margin: 12px 0 0;
     padding: 0;
-
     border: 0;
     background: transparent;
-
     font-family: 'Aeonik Fono', monospace;
     font-size: inherit;
     color: #888;
-
     cursor: pointer;
   }
 
@@ -303,7 +298,6 @@ const projects = await sanityClient.fetch(`
     h2 {
       width: 100%;
       margin-bottom: 20px;
-
       font-size: 36px;
       line-height: 1;
     }
@@ -321,7 +315,6 @@ const projects = await sanityClient.fetch(`
     .media-grid {
       grid-template-columns: 1fr;
       gap: 12px;
-
       width: calc(100% + 40px);
       margin-left: -20px;
       margin-right: -20px;
@@ -336,11 +329,9 @@ const projects = await sanityClient.fetch(`
       display: flex;
       overflow-x: auto;
       gap: 0;
-
       width: calc(100% + 40px);
       margin-left: -20px;
       margin-right: -20px;
-
       scroll-snap-type: x mandatory;
       scrollbar-width: none;
       overscroll-behavior-x: contain;
@@ -354,16 +345,13 @@ const projects = await sanityClient.fetch(`
       flex: 0 0 100%;
       width: 100%;
       grid-column: auto;
-
       scroll-snap-align: start;
     }
 
     .meta {
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 16px;
-
       margin-top: 18px;
-
       font-size: 11px;
     }
 
@@ -393,10 +381,8 @@ const projects = await sanityClient.fetch(`
 
     short.hidden = false
     long.hidden = true
-
     button.textContent = 'Read more'
     button.setAttribute('aria-expanded', 'false')
-
     description.removeAttribute('data-expanded')
   }
 
@@ -411,26 +397,18 @@ const projects = await sanityClient.fetch(`
 
     short.hidden = true
     long.hidden = false
-
     button.textContent = 'Read less'
     button.setAttribute('aria-expanded', 'true')
-
     description.setAttribute('data-expanded', 'true')
   }
 
   descriptions.forEach((description) => {
     const button = description.querySelector('[data-read-more]')
-
     if (!(button instanceof HTMLButtonElement)) return
 
     button.addEventListener('click', () => {
       const isExpanded = description.hasAttribute('data-expanded')
-
-      if (isExpanded) {
-        closeDescription(description)
-      } else {
-        openDescription(description)
-      }
+      isExpanded ? closeDescription(description) : openDescription(description)
     })
   })
 
