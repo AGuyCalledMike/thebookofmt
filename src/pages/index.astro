@@ -7,30 +7,41 @@ const projects = await sanityClient.fetch(`
     _id,
     headline,
     tags,
+    mobileMediaMode,
+
     media[] {
       _key,
       mediaType,
       width,
       alt,
+
       image {
         asset-> {
           url
         }
       },
+
       video {
+        asset-> {
+          url
+        }
+      },
+
+      slides[] {
+        alt,
         asset-> {
           url
         }
       }
     },
+
     brand,
     projectName,
     role,
     agency,
-description,
-mobileMediaMode,
-enableReadMore,
-longDescription
+    description,
+    enableReadMore,
+    longDescription
   }
 `)
 ---
@@ -39,8 +50,7 @@ longDescription
   <main>
     {
       projects.map((project) => (
-        <section class="project">
-
+        <section class="project" data-project>
           <h2>{project.headline}</h2>
 
           <div class="tags">
@@ -49,24 +59,44 @@ longDescription
             ))}
           </div>
 
-    <div
-  class:list={[
-    'media-grid',
-    project.mobileMediaMode === 'slideshow' && 'mobile-slideshow'
-  ]}
->
-  {project.media?.map((item) => (
-    <div
-      class:list={[
-        'media-item',
-        item.width === 'half' ? 'half' : 'full'
-      ]}
+          <div
+            class:list={[
+              'media-grid',
+              project.mobileMediaMode === 'slideshow' && 'mobile-slideshow'
+            ]}
+          >
+            {project.media?.map((item) => (
+              <div
+                class:list={[
+                  'media-item',
+                  item.width === 'half' ? 'half' : 'full'
+                ]}
               >
                 {
                   item.mediaType === 'video' && item.video?.asset?.url ? (
-                    <video autoplay muted loop playsinline>
+                    <video autoplay muted loop playsinline preload="metadata">
                       <source src={item.video.asset.url} />
                     </video>
+                  ) : item.mediaType === 'slideshow' && item.slides?.length ? (
+                    <div
+                      class="project-slideshow"
+                      data-project-slideshow
+                      role="button"
+                      tabindex="0"
+                      aria-label="Advance slideshow"
+                    >
+                      {item.slides.map((slide, index) => (
+                        <img
+                          src={slide.asset?.url}
+                          alt={slide.alt || ''}
+                          loading="lazy"
+                          class:list={[
+                            'slideshow-slide',
+                            index === 0 && 'is-active'
+                          ]}
+                        />
+                      ))}
+                    </div>
                   ) : item.image?.asset?.url ? (
                     <img
                       src={item.image.asset.url}
@@ -80,59 +110,52 @@ longDescription
           </div>
 
           <div class="meta">
-  <p>Brand: {project.brand}</p>
-  <p>Project: {project.projectName}</p>
-  <p class="secondary-meta">Role: {project.role}</p>
-  <p class="secondary-meta">Agency: {project.agency}</p>
-</div>
+            <p>Brand: {project.brand}</p>
+            <p>Project: {project.projectName}</p>
+            <p class="secondary-meta">Role: {project.role}</p>
+            <p class="secondary-meta">Agency: {project.agency}</p>
+          </div>
 
-        <div
-  class="description"
-  data-project-description
->
-  <div
-    class="description-version short-description"
-    data-short-description
-  >
-    {project.description?.map((block) =>
-      block._type === 'block' ? (
-        <p>
-          {block.children?.map((child) => child.text).join('')}
-        </p>
-      ) : null
-    )}
-  </div>
+          <div class="description" data-project-description>
+            <div class="description-version short-description" data-short-description>
+              {project.description?.map((block) =>
+                block._type === 'block' ? (
+                  <p>
+                    {block.children?.map((child) => child.text).join('')}
+                  </p>
+                ) : null
+              )}
+            </div>
 
-  {
-    project.enableReadMore && project.longDescription?.length ? (
-      <>
-        <div
-          class="description-version long-description"
-          data-long-description
-          hidden
-        >
-          {project.longDescription.map((block) =>
-            block._type === 'block' ? (
-              <p>
-                {block.children?.map((child) => child.text).join('')}
-              </p>
-            ) : null
-          )}
-        </div>
+            {
+              project.enableReadMore && project.longDescription?.length ? (
+                <>
+                  <div
+                    class="description-version long-description"
+                    data-long-description
+                    hidden
+                  >
+                    {project.longDescription.map((block) =>
+                      block._type === 'block' ? (
+                        <p>
+                          {block.children?.map((child) => child.text).join('')}
+                        </p>
+                      ) : null
+                    )}
+                  </div>
 
-        <button
-          class="read-more"
-          type="button"
-          data-read-more
-          aria-expanded="false"
-        >
-          Read more
-        </button>
-      </>
-    ) : null
-  }
-</div>
-
+                  <button
+                    class="read-more"
+                    type="button"
+                    data-read-more
+                    aria-expanded="false"
+                  >
+                    Read more
+                  </button>
+                </>
+              ) : null
+            }
+          </div>
         </section>
       ))
     }
@@ -140,205 +163,226 @@ longDescription
 </Layout>
 
 <style>
-.project {
-  padding: 220px 60px 120px;
-}
-
-h2 {
-  width: min(720px, 90%);
-  margin: 0 auto 24px;
-
-  font-family: 'Cooper', serif;
-  font-size: 42px;
-  font-weight: 300;
-  line-height: 0.98;
-  text-align: center;
-}
-
-.tags {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 10px;
-
-  margin-bottom: 28px;
-}
-
-.tags span {
-  padding: 10px 13px 8px;
-
-  border: 1px solid #292929;
-  border-radius: 4px;
-  background: #111;
-  font-size: 8px;
-  line-height: 1;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-
-  color: #aaa;
-}
-
-.media-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 26px;
-}
-
-.media-item.full {
-  grid-column: 1 / -1;
-}
-
-.media-item.half {
-  grid-column: span 1;
-}
-
-.media-item img,
-.media-item video {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-
-.meta {
-  display: grid;  
-  grid-template-columns: repeat(4, 1fr);
-  gap: 26px;
-
-  margin-top: 26px;
-
-  font-size: 10px;
-  line-height: 1.4;
-  color: #aaa;
-}
-
-.meta p {
-  margin: 0;
-}
-
-.description {
-  width: min(720px, 100%);
-  margin: 58px auto 0;
-
-  font-size: 13px;
-  line-height: 1.65;
-  color: #888;
-}
-
-.description p {
-  margin: 0 0 18px;
-}
-
-.description-version p:first-child {
-  text-indent: 2em;
-}
-
-.read-more {
-  margin: 12px 0 0;
-  padding: 0;
-
-  border: 0;
-  background: transparent;
-
-  font-family: 'Aeonik Fono', monospace;
-  font-size: inherit;
-  color: #888;
-
-  cursor: pointer;
-}
-
-.read-more:hover {
-  color: white;
-}
-
-@media (max-width: 700px) {
   .project {
-    padding: 125px 20px 80px;
+    padding: 190px 60px 120px;
   }
 
   h2 {
-    width: 100%;
-    margin-bottom: 20px;
+    width: min(720px, 90%);
+    margin: 0 auto 24px;
 
-    font-size: 36px;
-    line-height: 1;
+    font-family: 'Cooper', serif;
+    font-size: 52px;
+    font-weight: 300;
+    line-height: 0.98;
+    text-align: center;
   }
 
   .tags {
-    gap: 7px;
-    margin-bottom: 22px;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+
+    margin-bottom: 28px;
   }
 
   .tags span {
-    padding: 8px 10px 7px;
-    font-size: 9px;
+    padding: 10px 13px 8px;
+
+    border: 1px solid #292929;
+    border-radius: 4px;
+    background: #111;
+
+    font-size: 10px;
+    line-height: 1;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+
+    color: #aaa;
   }
 
-.media-grid {
-  grid-template-columns: 1fr;
-  gap: 12px;
+  .media-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 26px;
+  }
 
-  width: calc(100% + 40px);
-  margin-left: -20px;
-  margin-right: -20px;
-}
-  .media-item.full,
+  .media-item.full {
+    grid-column: 1 / -1;
+  }
+
   .media-item.half {
-    grid-column: 1;
+    grid-column: span 1;
+  }
+
+  .media-item img,
+  .media-item video {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .project-slideshow {
+    position: relative;
+    width: 100%;
+    cursor: pointer;
+  }
+
+  .project-slideshow:focus-visible {
+    outline: 1px solid currentColor;
+    outline-offset: 4px;
+  }
+
+  .project-slideshow .slideshow-slide {
+    display: none;
+    width: 100%;
+    height: auto;
+  }
+
+  .project-slideshow .slideshow-slide.is-active {
+    display: block;
   }
 
   .meta {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 26px;
 
-    margin-top: 18px;
+    margin-top: 26px;
 
-    font-size: 11px;
+    font-size: 13px;
+    line-height: 1.4;
+    color: #aaa;
   }
 
-  .secondary-meta {
-    display: none;
+  .meta p {
+    margin: 0;
   }
 
   .description {
-    margin-top: 42px;
-    font-size: 13px;
-    line-height: 1.6;
-  }
-}
+    width: min(720px, 100%);
+    margin: 58px auto 0;
 
-@media (max-width: 700px) {
-  .media-grid.mobile-slideshow {
-    display: flex;
-    overflow-x: auto;
-    gap: 0;
-
-    width: calc(100% + 40px);
-    margin-left: -20px;
-    margin-right: -20px;
-
-    scroll-snap-type: x mandatory;
-    scrollbar-width: none;
-    overscroll-behavior-x: contain;
+    font-size: 15px;
+    line-height: 1.65;
+    color: #888;
   }
 
-  .media-grid.mobile-slideshow::-webkit-scrollbar {
-    display: none;
+  .description p {
+    margin: 0 0 18px;
   }
 
-  .media-grid.mobile-slideshow .media-item {
-    flex: 0 0 100%;
-    width: 100%;
-    grid-column: auto;
-
-    scroll-snap-align: start;
+  .description-version p:first-child {
+    text-indent: 2em;
   }
-}
+
+  .read-more {
+    margin: 12px 0 0;
+    padding: 0;
+
+    border: 0;
+    background: transparent;
+
+    font-family: 'Aeonik Fono', monospace;
+    font-size: inherit;
+    color: #888;
+
+    cursor: pointer;
+  }
+
+  .read-more:hover {
+    color: white;
+  }
+
+  @media (max-width: 700px) {
+    .project {
+      padding: 125px 20px 80px;
+    }
+
+    h2 {
+      width: 100%;
+      margin-bottom: 20px;
+
+      font-size: 36px;
+      line-height: 1;
+    }
+
+    .tags {
+      gap: 7px;
+      margin-bottom: 22px;
+    }
+
+    .tags span {
+      padding: 8px 10px 7px;
+      font-size: 9px;
+    }
+
+    .media-grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+
+      width: calc(100% + 40px);
+      margin-left: -20px;
+      margin-right: -20px;
+    }
+
+    .media-item.full,
+    .media-item.half {
+      grid-column: 1;
+    }
+
+    .media-grid.mobile-slideshow {
+      display: flex;
+      overflow-x: auto;
+      gap: 0;
+
+      width: calc(100% + 40px);
+      margin-left: -20px;
+      margin-right: -20px;
+
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+      overscroll-behavior-x: contain;
+    }
+
+    .media-grid.mobile-slideshow::-webkit-scrollbar {
+      display: none;
+    }
+
+    .media-grid.mobile-slideshow .media-item {
+      flex: 0 0 100%;
+      width: 100%;
+      grid-column: auto;
+
+      scroll-snap-align: start;
+    }
+
+    .meta {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+
+      margin-top: 18px;
+
+      font-size: 11px;
+    }
+
+    .secondary-meta {
+      display: none;
+    }
+
+    .description {
+      margin-top: 42px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+  }
 </style>
 
 <script>
   const descriptions = document.querySelectorAll('[data-project-description]')
 
-  function closeDescription(description: Element) {
+  function closeDescription(description) {
     const short = description.querySelector('[data-short-description]')
     const long = description.querySelector('[data-long-description]')
     const button = description.querySelector('[data-read-more]')
@@ -356,7 +400,7 @@ h2 {
     description.removeAttribute('data-expanded')
   }
 
-  function openDescription(description: Element) {
+  function openDescription(description) {
     const short = description.querySelector('[data-short-description]')
     const long = description.querySelector('[data-long-description]')
     const button = description.querySelector('[data-read-more]')
@@ -404,15 +448,64 @@ h2 {
 
     closeDescription(expandedDescription)
 
-    /*
-      If collapsing the long version would leave the description
-      above the viewport, bring the reader gently back to it.
-    */
     if (positionBeforeCollapse < 0) {
       expandedDescription.scrollIntoView({
         behavior: 'smooth',
         block: 'start',
       })
     }
+  })
+
+  const slideshows = document.querySelectorAll('[data-project-slideshow]')
+
+  slideshows.forEach((slideshow) => {
+    const slides = Array.from(
+      slideshow.querySelectorAll('.slideshow-slide')
+    )
+
+    if (slides.length < 2) return
+
+    let current = 0
+    let interval
+
+    function showSlide(index) {
+      slides.forEach((slide) => {
+        slide.classList.remove('is-active')
+      })
+
+      current = (index + slides.length) % slides.length
+      slides[current].classList.add('is-active')
+    }
+
+    function nextSlide() {
+      showSlide(current + 1)
+    }
+
+    function startAutoplay() {
+      interval = window.setInterval(nextSlide, 4000)
+    }
+
+    function stopAutoplay() {
+      if (interval) {
+        window.clearInterval(interval)
+        interval = undefined
+      }
+    }
+
+    function advanceManually() {
+      stopAutoplay()
+      nextSlide()
+    }
+
+    slideshow.addEventListener('click', advanceManually)
+
+    slideshow.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault()
+        advanceManually()
+      }
+    })
+
+    startAutoplay()
   })
 </script>

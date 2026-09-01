@@ -46,7 +46,7 @@ export const projectType = defineType({
     defineField({
       name: 'media',
       title: 'Project media',
-      description: 'Add images or video in the order they should appear.',
+      description: 'Add images, videos or slideshow blocks in the order they should appear.',
       type: 'array',
 
       of: [
@@ -61,14 +61,14 @@ export const projectType = defineType({
               title: 'Media type',
               type: 'string',
               initialValue: 'image',
-       options: {
-  list: [
-    {title: 'Image / GIF', value: 'image'},
-    {title: 'Video', value: 'video'},
-    {title: 'Slideshow', value: 'slideshow'},
-  ],
-  layout: 'radio',
-},
+              options: {
+                list: [
+                  {title: 'Image / GIF', value: 'image'},
+                  {title: 'Video', value: 'video'},
+                  {title: 'Slideshow', value: 'slideshow'},
+                ],
+                layout: 'radio',
+              },
               validation: (Rule) => Rule.required(),
             }),
 
@@ -93,27 +93,41 @@ export const projectType = defineType({
             }),
 
             defineField({
-  name: 'slides',
-  title: 'Slideshow images',
-  description: 'Add the images that should rotate inside this slideshow block.',
-  type: 'array',
-  of: [
-    {
-      type: 'image',
-      options: {
-        hotspot: true,
-      },
-      fields: [
-        defineField({
-          name: 'alt',
-          title: 'Alt text',
-          type: 'string',
-        }),
-      ],
-    },
-  ],
-  hidden: ({parent}) => parent?.mediaType !== 'slideshow',
-}),
+              name: 'slides',
+              title: 'Slides',
+              description: 'Add two or more images. These will play together as one slideshow.',
+              type: 'array',
+              of: [
+                {
+                  type: 'image',
+                  options: {
+                    hotspot: true,
+                  },
+                  fields: [
+                    defineField({
+                      name: 'alt',
+                      title: 'Alt text',
+                      type: 'string',
+                    }),
+                  ],
+                },
+              ],
+              hidden: ({parent}) => parent?.mediaType !== 'slideshow',
+              validation: (Rule) =>
+                Rule.custom((slides, context) => {
+                  const parent = context.parent as {mediaType?: string} | undefined
+
+                  if (parent?.mediaType !== 'slideshow') {
+                    return true
+                  }
+
+                  if (!Array.isArray(slides) || slides.length < 2) {
+                    return 'Add at least two images to create a slideshow.'
+                  }
+
+                  return true
+                }),
+            }),
 
             defineField({
               name: 'width',
@@ -135,25 +149,30 @@ export const projectType = defineType({
               title: 'Alt text',
               type: 'string',
               description: 'A short description of the image for accessibility.',
+              hidden: ({parent}) => parent?.mediaType !== 'image',
             }),
           ],
-
-
 
           preview: {
             select: {
               mediaType: 'mediaType',
               width: 'width',
               image: 'image',
+              firstSlide: 'slides.0',
             },
 
-            
+            prepare({mediaType, width, image, firstSlide}) {
+              const title =
+                mediaType === 'video'
+                  ? 'Video'
+                  : mediaType === 'slideshow'
+                    ? 'Slideshow'
+                    : 'Image'
 
-            prepare({mediaType, width, image}) {
               return {
-                title: mediaType === 'video' ? 'Video' : 'Image',
+                title,
                 subtitle: width === 'half' ? 'Half width' : 'Full width',
-                media: image,
+                media: image || firstSlide,
               }
             },
           },
@@ -161,7 +180,7 @@ export const projectType = defineType({
       ],
     }),
 
-        defineField({
+    defineField({
       name: 'mobileMediaMode',
       title: 'Mobile media layout',
       description: 'Choose how this project’s media appears on mobile.',
@@ -200,30 +219,30 @@ export const projectType = defineType({
       type: 'string',
     }),
 
-   defineField({
-  name: 'description',
-  title: 'Short description',
-  description: 'The concise version shown by default on the website.',
-  type: 'array',
-  of: [{type: 'block'}],
-}),
+    defineField({
+      name: 'description',
+      title: 'Short description',
+      description: 'The concise version shown by default on the website.',
+      type: 'array',
+      of: [{type: 'block'}],
+    }),
 
-defineField({
-  name: 'enableReadMore',
-  title: 'Enable Read More',
-  description: 'Allow this project to expand into a longer case study.',
-  type: 'boolean',
-  initialValue: false,
-}),
+    defineField({
+      name: 'enableReadMore',
+      title: 'Enable Read More',
+      description: 'Allow this project to expand into a longer case study.',
+      type: 'boolean',
+      initialValue: false,
+    }),
 
-defineField({
-  name: 'longDescription',
-  title: 'Long description',
-  description: 'The full version that replaces the short description when Read More is opened.',
-  type: 'array',
-  of: [{type: 'block'}],
-  hidden: ({parent}) => !parent?.enableReadMore,
-}),
+    defineField({
+      name: 'longDescription',
+      title: 'Long description',
+      description: 'The full version that replaces the short description when Read More is opened.',
+      type: 'array',
+      of: [{type: 'block'}],
+      hidden: ({parent}) => !parent?.enableReadMore,
+    }),
 
     defineField({
       name: 'order',
@@ -257,13 +276,14 @@ defineField({
       brand: 'brand',
       hidden: 'hidden',
       media: 'media.0.image',
+      slide: 'media.0.slides.0',
     },
 
-    prepare({title, headline, brand, hidden, media}) {
+    prepare({title, headline, brand, hidden, media, slide}) {
       return {
         title: hidden ? `${title} — HIDDEN` : title,
         subtitle: brand || headline,
-        media,
+        media: media || slide,
       }
     },
   },
