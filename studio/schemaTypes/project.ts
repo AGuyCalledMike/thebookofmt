@@ -61,13 +61,14 @@ export const projectType = defineType({
               title: 'Media type',
               type: 'string',
               initialValue: 'image',
-              options: {
-                list: [
-                  {title: 'Image / GIF', value: 'image'},
-                  {title: 'Video', value: 'video'},
-                ],
-                layout: 'radio',
-              },
+       options: {
+  list: [
+    {title: 'Image / GIF', value: 'image'},
+    {title: 'Video', value: 'video'},
+    {title: 'Slideshow', value: 'slideshow'},
+  ],
+  layout: 'radio',
+},
               validation: (Rule) => Rule.required(),
             }),
 
@@ -90,6 +91,29 @@ export const projectType = defineType({
               },
               hidden: ({parent}) => parent?.mediaType !== 'video',
             }),
+
+            defineField({
+  name: 'slides',
+  title: 'Slideshow images',
+  description: 'Add the images that should rotate inside this slideshow block.',
+  type: 'array',
+  of: [
+    {
+      type: 'image',
+      options: {
+        hotspot: true,
+      },
+      fields: [
+        defineField({
+          name: 'alt',
+          title: 'Alt text',
+          type: 'string',
+        }),
+      ],
+    },
+  ],
+  hidden: ({parent}) => parent?.mediaType !== 'slideshow',
+}),
 
             defineField({
               name: 'width',
