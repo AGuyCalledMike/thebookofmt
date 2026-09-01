@@ -1,11 +1,11 @@
 import {projectType} from './project'
 import {siteSettingsType} from './siteSettings'
 import {infoType} from './info'
-import {playgroundItemType} from './playgroundItem'
+import {playgroundType} from './playground'
 
 export const schemaTypes = [
   projectType,
   siteSettingsType,
   infoType,
-  playgroundItemType,
+  playgroundType,
 ]

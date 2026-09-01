@@ -1,54 +1,86 @@
 ---
 import { sanityClient } from 'sanity:client'
 
-const items = await sanityClient.fetch(`
-  *[_type == "playgroundItem" && hidden != true] | order(order asc) {
-    _id,
-    mediaType,
-    alt,
-    image {
+const playground = await sanityClient.fetch(`
+  *[_type == "playground"][0] {
+    images[] {
+      _key,
+      alt,
+      hidden,
       asset-> {
-        url
+        url,
+        originalFilename
       }
     },
-    video {
+
+    videos[] {
+      _key,
+      hidden,
       asset-> {
-        url
+        url,
+        originalFilename
       }
     }
   }
 `)
+
+const images = playground?.images?.filter((item) => !item.hidden) ?? []
+const videos = playground?.videos?.filter((item) => !item.hidden) ?? []
 ---
 
-<div class="playground-grid">
+<div class="playground-panel">
   {
-    items.map((item) => (
-      <div class="playground-item">
-        {
-          item.mediaType === 'video' && item.video?.asset?.url ? (
-            <video autoplay muted loop playsinline>
-              <source src={item.video.asset.url} />
-            </video>
-          ) : item.image?.asset?.url ? (
+    images.length ? (
+      <div class="playground-masonry">
+        {images.map((item) => (
+          <figure class="playground-item">
             <img
-              src={item.image.asset.url}
-              alt={item.alt || ''}
+              src={item.asset?.url}
+              alt={item.alt || item.asset?.originalFilename || ''}
               loading="lazy"
             />
-          ) : null
-        }
+          </figure>
+        ))}
       </div>
-    ))
+    ) : null
+  }
+
+  {
+    videos.length ? (
+      <div class="playground-masonry playground-videos">
+        {videos.map((item) => (
+          <figure class="playground-item">
+            <video autoplay muted loop playsinline preload="metadata">
+              <source src={item.asset?.url} />
+            </video>
+          </figure>
+        ))}
+      </div>
+    ) : null
   }
 </div>
 
 <style>
-  .playground-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 12px;
+  .playground-panel {
+    min-height: 100%;
+    background: #000;
+    color: #fff;
+  }
+
+  .playground-masonry {
+    columns: 4;
+    column-gap: 8px;
 
     padding: 120px 40px 40px;
+  }
+
+  .playground-videos {
+    padding-top: 0;
+  }
+
+  .playground-item {
+    break-inside: avoid;
+    margin: 0 0 8px;
   }
 
   .playground-item img,
@@ -59,17 +91,25 @@ const items = await sanityClient.fetch(`
   }
 
   @media (max-width: 900px) {
-    .playground-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+    .playground-masonry {
+      columns: 2;
     }
   }
 
   @media (max-width: 700px) {
-    .playground-grid {
-      grid-template-columns: 1fr;
-      gap: 8px;
+  .playground-masonry {
+    columns: 3;
+    column-gap: 4px;
 
-      padding: 100px 0 0;
-    }
+    padding: 100px 4px 0;
   }
+
+  .playground-videos {
+    padding-top: 0;
+  }
+
+  .playground-item {
+    margin-bottom: 4px;
+  }
+}
 </style>
