@@ -3,13 +3,11 @@ import { sanityClient } from 'sanity:client'
 import Layout from '../layouts/Layout.astro'
 
 const projects = await sanityClient.fetch(`
-  *[_type == "project" && hidden != true] | order(order asc) {
+  *[_type == "project" && hidden != true] | order(orderRank asc, _createdAt asc) {
     _id,
     "slug": slug.current,
     headline,
     tags,
-    mobileMediaMode,
-
     media[] {
       _key,
       mediaType,
@@ -23,6 +21,12 @@ const projects = await sanityClient.fetch(`
       },
 
       video {
+        asset-> {
+          url
+        }
+      },
+
+      poster {
         asset-> {
           url
         }
@@ -50,140 +54,371 @@ const projects = await sanityClient.fetch(`
 <Layout>
   <main>
     {
-      projects.map((project) => (
-        <section
-          class="project"
-          data-project
-          data-project-slug={project.slug}
-          id={project.slug ? `project-${project.slug}` : undefined}
-        >
-          <h2>{project.headline}</h2>
+      projects.map((project) => {
+        const media = project.media ?? []
 
-          <div class="tags">
-            {project.tags?.map((tag) => (
-              <span>{tag}</span>
-            ))}
-          </div>
+        const mobileImages = media.flatMap((item) => {
+          if (item.mediaType === 'image' && item.image?.asset?.url) {
+            return [
+              {
+                key: item._key,
+                url: item.image.asset.url,
+                alt: item.alt || '',
+              },
+            ]
+          }
 
-          <div
-            class:list={[
-              'media-grid',
-              project.mobileMediaMode === 'slideshow' && 'mobile-slideshow'
-            ]}
+          if (item.mediaType === 'slideshow' && item.slides?.length) {
+            return item.slides
+              .filter((slide) => slide.asset?.url)
+              .map((slide, index) => ({
+                key: `${item._key}-${index}`,
+                url: slide.asset.url,
+                alt: slide.alt || '',
+              }))
+          }
+
+          return []
+        })
+
+        const firstImageMediaIndex = media.findIndex(
+          (item) =>
+            (item.mediaType === 'image' && item.image?.asset?.url) ||
+            (item.mediaType === 'slideshow' &&
+              item.slides?.some((slide) => slide.asset?.url))
+        )
+
+        return (
+          <section
+            class="project"
+            data-project
+            data-project-slug={project.slug}
+            id={project.slug ? `project-${project.slug}` : undefined}
           >
-            {project.media?.map((item) => (
-              <div
-                class:list={[
-                  'media-item',
-                  item.width === 'half' ? 'half' : 'full'
-                ]}
-              >
-                {
-                  item.mediaType === 'video' && item.video?.asset?.url ? (
-                    <video autoplay muted loop playsinline preload="metadata">
-                      <source src={item.video.asset.url} />
-                    </video>
-                  ) : item.mediaType === 'slideshow' && item.slides?.length ? (
-                    <div
-                      class="project-slideshow"
-                      data-project-slideshow
-                    >
-                      <div class="slideshow-viewport">
-                        <div class="slideshow-track" data-slideshow-track>
-                          {item.slides.map((slide) => (
-                            <div class="slideshow-slide">
-                              <img
-                                src={slide.asset?.url}
-                                alt={slide.alt || ''}
-                                loading="lazy"
-                              />
-                            </div>
-                          ))}
+            <h2>{project.headline}</h2>
+
+            <div class="tags">
+              {project.tags?.map((tag) => (
+                <span>{tag}</span>
+              ))}
+            </div>
+
+            <div class="media-grid desktop-media">
+              {project.media?.map((item) => (
+                <div
+                  class:list={[
+                    'media-item',
+                    item.width === 'half' ? 'half' : 'full'
+                  ]}
+                >
+                  {
+                    item.mediaType === 'video' && item.video?.asset?.url ? (
+                      <div class="custom-video-player" data-video-player>
+                        <video
+                          muted
+                          loop
+                          playsinline
+                          preload="metadata"
+                          poster={item.poster?.asset?.url}
+                          data-video
+                        >
+                          <source src={item.video.asset.url} />
+                        </video>
+
+                        <button
+                          class="video-play-large"
+                          type="button"
+                          data-video-play-large
+                          aria-label="Play video"
+                        >
+                          <span aria-hidden="true"></span>
+                        </button>
+
+                        <div class="video-controls" data-video-controls>
+                          <button
+                            class="video-control-button"
+                            type="button"
+                            data-video-play
+                            aria-label="Play video"
+                          >
+                            <span data-video-play-icon aria-hidden="true">▶</span>
+                          </button>
+
+                          <input
+                            class="video-progress"
+                            type="range"
+                            min="0"
+                            max="1000"
+                            value="0"
+                            step="1"
+                            data-video-progress
+                            aria-label="Video progress"
+                          />
+
+                          <span class="video-time" data-video-time>0:00</span>
+
+                          <button
+                            class="video-control-button"
+                            type="button"
+                            data-video-mute
+                            aria-label="Unmute video"
+                          >
+                            <span data-video-mute-icon aria-hidden="true">M</span>
+                          </button>
+
+                          <button
+                            class="video-control-button"
+                            type="button"
+                            data-video-fullscreen
+                            aria-label="Enter fullscreen"
+                          >
+                            <span aria-hidden="true">⛶</span>
+                          </button>
                         </div>
+                      </div>
+                    ) : item.mediaType === 'slideshow' && item.slides?.length ? (
+                      <div
+                        class="project-slideshow"
+                        data-project-slideshow
+                      >
+                        <div class="slideshow-viewport">
+                          <div class="slideshow-track" data-slideshow-track>
+                            {item.slides.map((slide) => (
+                              <div class="slideshow-slide">
+                                <img
+                                  src={slide.asset?.url}
+                                  alt={slide.alt || ''}
+                                  loading="lazy"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <button
+                          class="slideshow-control slideshow-control-prev"
+                          type="button"
+                          data-slideshow-prev
+                          aria-label="Previous slide"
+                        >
+                          <span aria-hidden="true">←</span>
+                        </button>
+
+                        <button
+                          class="slideshow-control slideshow-control-next"
+                          type="button"
+                          data-slideshow-next
+                          aria-label="Next slide"
+                        >
+                          <span aria-hidden="true">→</span>
+                        </button>
+                      </div>
+                    ) : item.image?.asset?.url ? (
+                      <img
+                        src={item.image.asset.url}
+                        alt={item.alt || ''}
+                        loading="lazy"
+                      />
+                    ) : null
+                  }
+                </div>
+              ))}
+            </div>
+
+
+            <div class="mobile-media">
+              {media.map((item, mediaIndex) => {
+                if (item.mediaType === 'video' && item.video?.asset?.url) {
+                  return (
+                    <div class="mobile-media-item">
+                      <div class="custom-video-player" data-video-player>
+                          <video
+                            muted
+                            loop
+                            playsinline
+                            preload="metadata"
+                            poster={item.poster?.asset?.url}
+                            data-video
+                          >
+                            <source src={item.video.asset.url} />
+                          </video>
+
+                          <button
+                            class="video-play-large"
+                            type="button"
+                            data-video-play-large
+                            aria-label="Play video"
+                          >
+                            <span aria-hidden="true"></span>
+                          </button>
+
+                          <div class="video-controls" data-video-controls>
+                            <button
+                              class="video-control-button"
+                              type="button"
+                              data-video-play
+                              aria-label="Play video"
+                            >
+                              <span data-video-play-icon aria-hidden="true">▶</span>
+                            </button>
+
+                            <input
+                              class="video-progress"
+                              type="range"
+                              min="0"
+                              max="1000"
+                              value="0"
+                              step="1"
+                              data-video-progress
+                              aria-label="Video progress"
+                            />
+
+                            <span class="video-time" data-video-time>0:00</span>
+
+                            <button
+                              class="video-control-button"
+                              type="button"
+                              data-video-mute
+                              aria-label="Unmute video"
+                            >
+                              <span data-video-mute-icon aria-hidden="true">M</span>
+                            </button>
+
+                            <button
+                              class="video-control-button"
+                              type="button"
+                              data-video-fullscreen
+                              aria-label="Enter fullscreen"
+                            >
+                              <span aria-hidden="true">⛶</span>
+                            </button>
+                          </div>
+                        </div>
+                    </div>
+                  )
+                }
+
+                if (mediaIndex !== firstImageMediaIndex) {
+                  return null
+                }
+
+                if (mobileImages.length > 1) {
+                  return (
+                    <div
+                      class="mobile-image-slideshow"
+                      data-mobile-image-slideshow
+                      aria-label={`${project.headline || 'Project'} images`}
+                    >
+                      <div
+                        class="mobile-image-track"
+                        data-mobile-image-track
+                      >
+                        {mobileImages.map((image) => (
+                          <div class="mobile-image-slide">
+                            <img
+                              src={image.url}
+                              alt={image.alt}
+                              loading="lazy"
+                              draggable="false"
+                            />
+                          </div>
+                        ))}
                       </div>
 
                       <button
-                        class="slideshow-control slideshow-control-prev"
+                        class="mobile-slide-zone mobile-slide-zone-prev"
                         type="button"
-                        data-slideshow-prev
-                        aria-label="Previous slide"
-                      >
-                        <span aria-hidden="true">←</span>
-                      </button>
+                        data-mobile-slide-prev
+                        aria-label="Previous image"
+                      ></button>
 
                       <button
-                        class="slideshow-control slideshow-control-next"
+                        class="mobile-slide-zone mobile-slide-zone-next"
                         type="button"
-                        data-slideshow-next
-                        aria-label="Next slide"
+                        data-mobile-slide-next
+                        aria-label="Next image"
+                      ></button>
+
+                      <span
+                        class="mobile-slide-count"
+                        data-mobile-slide-count
+                        aria-live="polite"
                       >
-                        <span aria-hidden="true">→</span>
-                      </button>
+                        1 / {mobileImages.length}
+                      </span>
                     </div>
-                  ) : item.image?.asset?.url ? (
-                    <img
-                      src={item.image.asset.url}
-                      alt={item.alt || ''}
-                      loading="lazy"
-                    />
-                  ) : null
+                  )
                 }
-              </div>
-            ))}
-          </div>
 
-          <div class="meta">
-            <p>Brand: {project.brand}</p>
-            <p>Project: {project.projectName}</p>
-            <p class="secondary-meta">Role: {project.role}</p>
-            <p class="secondary-meta">Agency: {project.agency}</p>
-          </div>
+                if (mobileImages.length === 1) {
+                  return (
+                    <div class="mobile-media-item">
+                      <img
+                        src={mobileImages[0].url}
+                        alt={mobileImages[0].alt}
+                        loading="lazy"
+                      />
+                    </div>
+                  )
+                }
 
-          <div class="description" data-project-description>
-            <div
-              class="description-version short-description"
-              data-short-description
-            >
-              {project.description?.map((block) =>
-                block._type === 'block' ? (
-                  <p>
-                    {block.children?.map((child) => child.text).join('')}
-                  </p>
-                ) : null
-              )}
+                return null
+              })}
             </div>
 
-            {
-              project.enableReadMore && project.longDescription?.length ? (
-                <>
-                  <div
-                    class="description-version long-description"
-                    data-long-description
-                    hidden
-                  >
-                    {project.longDescription.map((block) =>
-                      block._type === 'block' ? (
-                        <p>
-                          {block.children?.map((child) => child.text).join('')}
-                        </p>
-                      ) : null
-                    )}
-                  </div>
+            <div class="meta">
+              <p>Brand: {project.brand}</p>
+              <p>Project: {project.projectName}</p>
+              <p class="secondary-meta">Role: {project.role}</p>
+              <p class="secondary-meta">Agency: {project.agency}</p>
+            </div>
 
-                  <button
-                    class="read-more"
-                    type="button"
-                    data-read-more
-                    aria-expanded="false"
-                  >
-                    Read more
-                  </button>
-                </>
-              ) : null
-            }
-          </div>
-        </section>
-      ))
+            <div class="description" data-project-description>
+              <div
+                class="description-version short-description"
+                data-short-description
+              >
+                {project.description?.map((block) =>
+                  block._type === 'block' ? (
+                    <p>
+                      {block.children?.map((child) => child.text).join('')}
+                    </p>
+                  ) : null
+                )}
+              </div>
+
+              {
+                project.enableReadMore && project.longDescription?.length ? (
+                  <>
+                    <div
+                      class="description-version long-description"
+                      data-long-description
+                      hidden
+                    >
+                      {project.longDescription.map((block) =>
+                        block._type === 'block' ? (
+                          <p>
+                            {block.children?.map((child) => child.text).join('')}
+                          </p>
+                        ) : null
+                      )}
+                    </div>
+
+                    <button
+                      class="read-more"
+                      type="button"
+                      data-read-more
+                      aria-expanded="false"
+                    >
+                      Read more
+                    </button>
+                  </>
+                ) : null
+              }
+            </div>
+          </section>
+        )
+      })
     }
   </main>
 </Layout>
@@ -191,6 +426,7 @@ const projects = await sanityClient.fetch(`
 <style>
   .project {
     padding: 190px 60px 120px;
+    scroll-margin-top: 0;
   }
 
   h2 {
@@ -229,6 +465,28 @@ const projects = await sanityClient.fetch(`
     gap: 26px;
   }
 
+  .mobile-media {
+    display: none;
+  }
+
+  .mobile-slide-count {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    z-index: 20;
+    display: block;
+    padding: 6px 8px 5px;
+    background: #000;
+    font-family: 'Aeonik Fono', monospace;
+    font-size: 10px;
+    line-height: 1;
+    letter-spacing: 0.04em;
+    color: #fff;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: none;
+  }
+
   .media-item.full {
     grid-column: 1 / -1;
   }
@@ -244,7 +502,6 @@ const projects = await sanityClient.fetch(`
     height: auto;
   }
 
-  /* Individual slideshow blocks */
   .project-slideshow {
     position: relative;
     width: 100%;
@@ -279,13 +536,10 @@ const projects = await sanityClient.fetch(`
     top: 0;
     bottom: 0;
     z-index: 2;
-
     width: 50%;
     padding: 0;
-
     border: 0;
     background: transparent;
-
     color: white;
     cursor: pointer;
   }
@@ -301,11 +555,9 @@ const projects = await sanityClient.fetch(`
   .slideshow-control span {
     position: absolute;
     top: 50%;
-
     font-family: 'Aeonik Fono', monospace;
     font-size: 26px;
     line-height: 1;
-
     opacity: 0;
     transform: translateY(-50%);
     transition: opacity 150ms ease;
@@ -373,6 +625,139 @@ const projects = await sanityClient.fetch(`
     color: white;
   }
 
+
+  /* Custom video player */
+  .custom-video-player {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    background: #000;
+  }
+
+  .custom-video-player video {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .video-play-large {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 3;
+    display: grid;
+    place-items: center;
+    width: 58px;
+    height: 58px;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.72);
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.22);
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+  }
+
+  .video-play-large span {
+    display: block;
+    width: 0;
+    height: 0;
+    margin-left: 4px;
+    border-top: 10px solid transparent;
+    border-bottom: 10px solid transparent;
+    border-left: 16px solid #fff;
+  }
+
+  .custom-video-player.has-started .video-play-large {
+    display: none;
+  }
+
+  .video-controls {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 64px;
+    padding: 24px 16px 14px;
+    background: linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0.72),
+      rgba(0, 0, 0, 0)
+    );
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 160ms ease;
+  }
+
+  .custom-video-player.has-started:hover .video-controls,
+  .custom-video-player.has-started:focus-within .video-controls {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .video-control-button {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #fff;
+    font-family: 'Aeonik Fono', monospace;
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .video-progress {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 2px;
+    margin: 0;
+    appearance: none;
+    border: 0;
+    background: rgba(255, 255, 255, 0.35);
+    cursor: pointer;
+  }
+
+  .video-progress::-webkit-slider-thumb {
+    width: 10px;
+    height: 10px;
+    appearance: none;
+    border: 0;
+    border-radius: 50%;
+    background: #fff;
+  }
+
+  .video-progress::-moz-range-thumb {
+    width: 10px;
+    height: 10px;
+    border: 0;
+    border-radius: 50%;
+    background: #fff;
+  }
+
+  .video-time {
+    flex: 0 0 auto;
+    min-width: 34px;
+    font-family: 'Aeonik Fono', monospace;
+    font-size: 10px;
+    line-height: 1;
+    color: #fff;
+  }
+
+  @media (hover: none) {
+    .custom-video-player.has-started .video-controls {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+
   @media (max-width: 700px) {
     .project {
       padding: 125px 20px 80px;
@@ -395,43 +780,75 @@ const projects = await sanityClient.fetch(`
       font-size: 9px;
     }
 
-    .media-grid {
-      grid-template-columns: 1fr;
+    .desktop-media {
+      display: none;
+    }
+
+    .mobile-media {
+      display: flex;
+      flex-direction: column;
       gap: 12px;
       width: calc(100% + 40px);
       margin-left: -20px;
       margin-right: -20px;
     }
 
-    .media-item.full,
-    .media-item.half {
-      grid-column: 1;
+    .mobile-media-item,
+    .mobile-media-item > img {
+      display: block;
+      width: 100%;
     }
 
-    .media-grid.mobile-slideshow {
+    .mobile-media-item > img {
+      height: auto;
+    }
+
+    .mobile-image-slideshow {
+      position: relative;
+      width: 100%;
+      overflow: hidden;
+      touch-action: pan-y;
+      user-select: none;
+    }
+
+    .mobile-image-track {
       display: flex;
-      overflow-x: auto;
-      gap: 0;
-      width: calc(100% + 40px);
-      margin-left: -20px;
-      margin-right: -20px;
-      scroll-snap-type: x mandatory;
-      scrollbar-width: none;
-      overscroll-behavior-x: contain;
+      width: 100%;
+      transition: transform 420ms cubic-bezier(.76, 0, .24, 1);
+      will-change: transform;
     }
 
-    .media-grid.mobile-slideshow::-webkit-scrollbar {
-      display: none;
-    }
-
-    .media-grid.mobile-slideshow .media-item {
+    .mobile-image-slide {
       flex: 0 0 100%;
       width: 100%;
-      grid-column: auto;
-      scroll-snap-align: start;
     }
 
-    /* No hover arrows on touch-sized screens */
+    .mobile-image-slide img {
+      display: block;
+      width: 100%;
+      height: auto;
+      pointer-events: none;
+    }
+
+    .mobile-slide-zone {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      z-index: 2;
+      width: 50%;
+      padding: 0;
+      border: 0;
+      background: transparent;
+    }
+
+    .mobile-slide-zone-prev {
+      left: 0;
+    }
+
+    .mobile-slide-zone-next {
+      right: 0;
+    }
+
     .slideshow-control span {
       display: none;
     }
@@ -462,6 +879,188 @@ const projects = await sanityClient.fetch(`
 </style>
 
 <script>
+  const videoPlayers = document.querySelectorAll('[data-video-player]')
+
+  function formatTime(seconds) {
+    if (!Number.isFinite(seconds)) return '0:00'
+
+    const minutes = Math.floor(seconds / 60)
+    const remainingSeconds = Math.floor(seconds % 60)
+      .toString()
+      .padStart(2, '0')
+
+    return `${minutes}:${remainingSeconds}`
+  }
+
+  videoPlayers.forEach((player) => {
+    const video = player.querySelector('[data-video]')
+    const largePlay = player.querySelector('[data-video-play-large]')
+    const playButton = player.querySelector('[data-video-play]')
+    const playIcon = player.querySelector('[data-video-play-icon]')
+    const progress = player.querySelector('[data-video-progress]')
+    const time = player.querySelector('[data-video-time]')
+    const muteButton = player.querySelector('[data-video-mute]')
+    const muteIcon = player.querySelector('[data-video-mute-icon]')
+    const fullscreenButton = player.querySelector('[data-video-fullscreen]')
+
+    if (!(video instanceof HTMLVideoElement)) return
+    if (!(largePlay instanceof HTMLButtonElement)) return
+    if (!(playButton instanceof HTMLButtonElement)) return
+    if (!(progress instanceof HTMLInputElement)) return
+    if (!(time instanceof HTMLElement)) return
+    if (!(muteButton instanceof HTMLButtonElement)) return
+    if (!(fullscreenButton instanceof HTMLButtonElement)) return
+
+    const updatePlayState = () => {
+      if (playIcon instanceof HTMLElement) {
+        playIcon.textContent = video.paused ? '▶' : 'Ⅱ'
+      }
+
+      playButton.setAttribute(
+        'aria-label',
+        video.paused ? 'Play video' : 'Pause video'
+      )
+    }
+
+    const updateMuteState = () => {
+      if (muteIcon instanceof HTMLElement) {
+        muteIcon.textContent = video.muted ? 'M' : 'S'
+      }
+
+      muteButton.setAttribute(
+        'aria-label',
+        video.muted ? 'Unmute video' : 'Mute video'
+      )
+    }
+
+    const updateProgress = () => {
+      const duration = video.duration || 0
+      const ratio = duration ? video.currentTime / duration : 0
+
+      progress.value = String(Math.round(ratio * 1000))
+      time.textContent = formatTime(video.currentTime)
+    }
+
+    const togglePlay = async () => {
+      if (video.paused) {
+        player.classList.add('has-started')
+        await video.play()
+      } else {
+        video.pause()
+      }
+    }
+
+    largePlay.addEventListener('click', togglePlay)
+    playButton.addEventListener('click', togglePlay)
+
+    video.addEventListener('click', () => {
+      if (player.classList.contains('has-started')) {
+        togglePlay()
+      }
+    })
+
+    video.addEventListener('play', updatePlayState)
+    video.addEventListener('pause', updatePlayState)
+    video.addEventListener('timeupdate', updateProgress)
+    video.addEventListener('loadedmetadata', updateProgress)
+
+    progress.addEventListener('input', () => {
+      if (!video.duration) return
+      video.currentTime = (Number(progress.value) / 1000) * video.duration
+    })
+
+    muteButton.addEventListener('click', () => {
+      video.muted = !video.muted
+      updateMuteState()
+    })
+
+    fullscreenButton.addEventListener('click', async () => {
+      if (!document.fullscreenElement) {
+        if (player.requestFullscreen) {
+          await player.requestFullscreen()
+        }
+      } else if (document.exitFullscreen) {
+        await document.exitFullscreen()
+      }
+    })
+
+    updatePlayState()
+    updateMuteState()
+    updateProgress()
+  })
+  // Unified mobile project-image slideshows
+  const mobileSlideshows = document.querySelectorAll(
+    '[data-mobile-image-slideshow]'
+  )
+
+  mobileSlideshows.forEach((slideshow) => {
+    const track = slideshow.querySelector('[data-mobile-image-track]')
+    const slides = Array.from(slideshow.querySelectorAll('.mobile-image-slide'))
+    const previousButton = slideshow.querySelector('[data-mobile-slide-prev]')
+    const nextButton = slideshow.querySelector('[data-mobile-slide-next]')
+    const count = slideshow.querySelector('[data-mobile-slide-count]')
+
+    if (!(track instanceof HTMLElement)) return
+    if (!(previousButton instanceof HTMLButtonElement)) return
+    if (!(nextButton instanceof HTMLButtonElement)) return
+    if (!slides.length) return
+
+    let current = 0
+    let pointerStartX = null
+
+    const render = () => {
+      track.style.transform = `translateX(-${current * 100}%)`
+
+      if (count instanceof HTMLElement) {
+        count.textContent = `${current + 1} / ${slides.length}`
+      }
+    }
+
+    const show = (index) => {
+      current = (index + slides.length) % slides.length
+      render()
+    }
+
+    previousButton.addEventListener('click', () => {
+      show(current - 1)
+    })
+
+    nextButton.addEventListener('click', () => {
+      show(current + 1)
+    })
+
+    slideshow.addEventListener('pointerdown', (event) => {
+      pointerStartX = event.clientX
+    })
+
+    slideshow.addEventListener('pointerup', (event) => {
+      if (pointerStartX === null) return
+
+      const distance = event.clientX - pointerStartX
+      pointerStartX = null
+
+      if (Math.abs(distance) < 40) return
+
+      if (distance < 0) {
+        show(current + 1)
+      } else {
+        show(current - 1)
+      }
+    })
+
+    slideshow.addEventListener('pointercancel', () => {
+      pointerStartX = null
+    })
+
+    render()
+
+    const handleResize = () => {
+      render()
+    }
+
+    window.addEventListener('resize', handleResize)
+  })
+
   // Read more / read less
   const descriptions = document.querySelectorAll('[data-project-description]')
 
@@ -596,5 +1195,73 @@ const projects = await sanityClient.fetch(`
 
     renderSlide()
     startAutoplay()
+  })
+
+  // Arrow-key navigation between projects.
+  // Normal scrolling is untouched; this only responds to deliberate ↑ / ↓ presses.
+  const projectSections = Array.from(
+    document.querySelectorAll('[data-project]')
+  )
+
+  function isTypingOrUsingControl() {
+    const active = document.activeElement
+
+    if (!(active instanceof HTMLElement)) return false
+
+    return Boolean(
+      active.closest(
+        'input, textarea, select, button, a, [contenteditable="true"]'
+      )
+    )
+  }
+
+  function getCurrentProjectIndex() {
+    const marker = window.innerHeight * 0.35
+
+    let bestIndex = 0
+    let bestDistance = Number.POSITIVE_INFINITY
+
+    projectSections.forEach((project, index) => {
+      const rect = project.getBoundingClientRect()
+
+      if (rect.top <= marker && rect.bottom > marker) {
+        bestIndex = index
+        bestDistance = 0
+        return
+      }
+
+      const distance = Math.abs(rect.top - marker)
+
+      if (distance < bestDistance) {
+        bestDistance = distance
+        bestIndex = index
+      }
+    })
+
+    return bestIndex
+  }
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
+    if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return
+    if (isTypingOrUsingControl()) return
+    if (!document.documentElement.classList.contains('view-home')) return
+    if (!projectSections.length) return
+
+    const currentIndex = getCurrentProjectIndex()
+
+    const targetIndex =
+      event.key === 'ArrowDown'
+        ? Math.min(currentIndex + 1, projectSections.length - 1)
+        : Math.max(currentIndex - 1, 0)
+
+    if (targetIndex === currentIndex) return
+
+    event.preventDefault()
+
+    projectSections[targetIndex].scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    })
   })
 </script>

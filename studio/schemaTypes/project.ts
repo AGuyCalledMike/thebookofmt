@@ -1,15 +1,21 @@
 import {defineField, defineType} from 'sanity'
+import {orderRankField} from '@sanity/orderable-document-list'
 
 export const projectType = defineType({
   name: 'project',
-  title: 'Projects',
+  title: 'Project',
   type: 'document',
 
   fields: [
+    orderRankField({
+      type: 'project',
+      newItemPosition: 'after',
+    }),
+
     defineField({
       name: 'title',
-      title: 'Project title',
-      description: 'Internal name used in the CMS. This does not appear on the website.',
+      title: 'Internal project title',
+      description: 'Used only inside Sanity.',
       type: 'string',
       validation: (Rule) => Rule.required(),
     }),
@@ -17,7 +23,7 @@ export const projectType = defineType({
     defineField({
       name: 'headline',
       title: 'Project headline',
-      description: 'The large headline displayed at the top of the project.',
+      description: 'The headline shown on the website.',
       type: 'string',
       validation: (Rule) => Rule.required(),
     }),
@@ -45,10 +51,8 @@ export const projectType = defineType({
 
     defineField({
       name: 'media',
-      title: 'Project media',
-      description: 'Add images, videos or slideshow blocks in the order they should appear.',
+      title: 'Media',
       type: 'array',
-
       of: [
         {
           type: 'object',
@@ -60,21 +64,21 @@ export const projectType = defineType({
               name: 'mediaType',
               title: 'Media type',
               type: 'string',
-              initialValue: 'image',
               options: {
+                layout: 'radio',
                 list: [
-                  {title: 'Image / GIF', value: 'image'},
+                  {title: 'Image', value: 'image'},
                   {title: 'Video', value: 'video'},
                   {title: 'Slideshow', value: 'slideshow'},
                 ],
-                layout: 'radio',
               },
+              initialValue: 'image',
               validation: (Rule) => Rule.required(),
             }),
 
             defineField({
               name: 'image',
-              title: 'Image / GIF',
+              title: 'Image',
               type: 'image',
               options: {
                 hotspot: true,
@@ -93,13 +97,40 @@ export const projectType = defineType({
             }),
 
             defineField({
+              name: 'poster',
+              title: 'Poster image',
+              description: 'Optional thumbnail shown before the video plays.',
+              type: 'image',
+              options: {
+                hotspot: true,
+              },
+              hidden: ({parent}) => parent?.mediaType !== 'video',
+            }),
+
+            defineField({
               name: 'slides',
               title: 'Slides',
-              description: 'Add two or more images. These will play together as one slideshow.',
               type: 'array',
+              hidden: ({parent}) => parent?.mediaType !== 'slideshow',
+              validation: (Rule) =>
+                Rule.custom((slides, context) => {
+                  const parent = context.parent as {mediaType?: string} | undefined
+
+                  if (parent?.mediaType !== 'slideshow') {
+                    return true
+                  }
+
+                  if (!Array.isArray(slides) || slides.length < 2) {
+                    return 'Add at least two images to a slideshow.'
+                  }
+
+                  return true
+                }),
               of: [
                 {
                   type: 'image',
+                  name: 'slide',
+                  title: 'Slide',
                   options: {
                     hotspot: true,
                   },
@@ -112,35 +143,20 @@ export const projectType = defineType({
                   ],
                 },
               ],
-              hidden: ({parent}) => parent?.mediaType !== 'slideshow',
-              validation: (Rule) =>
-                Rule.custom((slides, context) => {
-                  const parent = context.parent as {mediaType?: string} | undefined
-
-                  if (parent?.mediaType !== 'slideshow') {
-                    return true
-                  }
-
-                  if (!Array.isArray(slides) || slides.length < 2) {
-                    return 'Add at least two images to create a slideshow.'
-                  }
-
-                  return true
-                }),
             }),
 
             defineField({
               name: 'width',
-              title: 'Desktop width',
+              title: 'Width',
               type: 'string',
-              initialValue: 'full',
               options: {
-                list: [
-                  {title: 'Full width', value: 'full'},
-                  {title: 'Half width', value: 'half'},
-                ],
                 layout: 'radio',
+                list: [
+                  {title: 'Full', value: 'full'},
+                  {title: 'Half', value: 'half'},
+                ],
               },
+              initialValue: 'full',
               validation: (Rule) => Rule.required(),
             }),
 
@@ -148,7 +164,6 @@ export const projectType = defineType({
               name: 'alt',
               title: 'Alt text',
               type: 'string',
-              description: 'A short description of the image for accessibility.',
               hidden: ({parent}) => parent?.mediaType !== 'image',
             }),
           ],
@@ -158,43 +173,48 @@ export const projectType = defineType({
               mediaType: 'mediaType',
               width: 'width',
               image: 'image',
+              poster: 'poster',
               firstSlide: 'slides.0',
+              slideCount: 'slides',
             },
 
-            prepare({mediaType, width, image, firstSlide}) {
-              const title =
+            prepare({
+              mediaType,
+              width,
+              image,
+              poster,
+              firstSlide,
+              slideCount,
+            }) {
+              const typeLabel =
                 mediaType === 'video'
-                  ? 'Video'
+                  ? 'VIDEO'
                   : mediaType === 'slideshow'
-                    ? 'Slideshow'
-                    : 'Image'
+                    ? 'SLIDESHOW'
+                    : 'IMAGE'
+
+              const widthLabel = width === 'half' ? 'HALF' : 'FULL'
+
+              const subtitle =
+                mediaType === 'slideshow' && Array.isArray(slideCount)
+                  ? `${slideCount.length} slide${slideCount.length === 1 ? '' : 's'}`
+                  : undefined
 
               return {
-                title,
-                subtitle: width === 'half' ? 'Half width' : 'Full width',
-                media: image || firstSlide,
+                title: `${typeLabel} · ${widthLabel}`,
+                subtitle,
+                media:
+                  mediaType === 'video'
+                    ? poster
+                    : mediaType === 'slideshow'
+                      ? firstSlide
+                      : image,
               }
             },
           },
         },
       ],
     }),
-
-    defineField({
-      name: 'mobileMediaMode',
-      title: 'Mobile media layout',
-      description: 'Choose how this project’s media appears on mobile.',
-      type: 'string',
-      initialValue: 'stack',
-      options: {
-        list: [
-          {title: 'Stack', value: 'stack'},
-          {title: 'Swipe slideshow', value: 'slideshow'},
-        ],
-        layout: 'radio',
-      },
-    }),
-
     defineField({
       name: 'brand',
       title: 'Brand',
@@ -221,8 +241,7 @@ export const projectType = defineType({
 
     defineField({
       name: 'description',
-      title: 'Short description',
-      description: 'The concise version shown by default on the website.',
+      title: 'Description',
       type: 'array',
       of: [{type: 'block'}],
     }),
@@ -230,7 +249,6 @@ export const projectType = defineType({
     defineField({
       name: 'enableReadMore',
       title: 'Enable Read More',
-      description: 'Allow this project to expand into a longer case study.',
       type: 'boolean',
       initialValue: false,
     }),
@@ -238,52 +256,41 @@ export const projectType = defineType({
     defineField({
       name: 'longDescription',
       title: 'Long description',
-      description: 'The full version that replaces the short description when Read More is opened.',
       type: 'array',
+      hidden: ({document}) => document?.enableReadMore !== true,
       of: [{type: 'block'}],
-      hidden: ({parent}) => !parent?.enableReadMore,
     }),
 
+    // Kept hidden temporarily so existing projects with the old numeric
+    // order value do not show "unknown field" warnings in Studio.
+    // The website no longer uses this field.
     defineField({
       name: 'order',
-      title: 'Order',
-      description: 'Lower numbers appear first.',
+      title: 'Legacy order',
       type: 'number',
-      initialValue: 100,
+      hidden: true,
     }),
 
     defineField({
       name: 'hidden',
       title: 'Hide project',
-      description: 'Hide this project from the website without deleting it.',
+      description: 'Hide this project from the site without deleting it.',
       type: 'boolean',
       initialValue: false,
     }),
-  ],
-
-  orderings: [
-    {
-      title: 'Portfolio order',
-      name: 'portfolioOrder',
-      by: [{field: 'order', direction: 'asc'}],
-    },
   ],
 
   preview: {
     select: {
       title: 'title',
       headline: 'headline',
-      brand: 'brand',
       hidden: 'hidden',
-      media: 'media.0.image',
-      slide: 'media.0.slides.0',
     },
 
-    prepare({title, headline, brand, hidden, media, slide}) {
+    prepare({title, headline, hidden}) {
       return {
-        title: hidden ? `${title} — HIDDEN` : title,
-        subtitle: brand || headline,
-        media: media || slide,
+        title: `${title || 'Untitled project'}${hidden ? ' — HIDDEN' : ''}`,
+        subtitle: headline || 'No public headline yet',
       }
     },
   },
