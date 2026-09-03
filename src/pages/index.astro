@@ -2,6 +2,24 @@
 import { sanityClient } from 'sanity:client'
 import Layout from '../layouts/Layout.astro'
 
+const imageWidths = [480, 768, 1024, 1440, 1920, 2400]
+
+function sanityImage(url, width) {
+  if (!url) return undefined
+
+  const separator = url.includes('?') ? '&' : '?'
+
+  return `${url}${separator}auto=format&fit=max&w=${width}&q=85`
+}
+
+function sanitySrcset(url) {
+  if (!url) return undefined
+
+  return imageWidths
+    .map((width) => `${sanityImage(url, width)} ${width}w`)
+    .join(', ')
+}
+
 const projects = await sanityClient.fetch(`
   *[_type == "project" && hidden != true] | order(orderRank asc, _createdAt asc) {
     _id,
@@ -16,7 +34,14 @@ const projects = await sanityClient.fetch(`
 
       image {
         asset-> {
-          url
+          url,
+          metadata {
+            dimensions {
+              width,
+              height,
+              aspectRatio
+            }
+          }
         }
       },
 
@@ -28,14 +53,42 @@ const projects = await sanityClient.fetch(`
 
       poster {
         asset-> {
-          url
+          url,
+          metadata {
+            dimensions {
+              width,
+              height,
+              aspectRatio
+            }
+          }
         }
       },
 
       slides[] {
         alt,
         asset-> {
-          url
+          url,
+          metadata {
+            dimensions {
+              width,
+              height,
+              aspectRatio
+            }
+          }
+        }
+      },
+
+      galleryImages[] {
+        alt,
+        asset-> {
+          url,
+          metadata {
+            dimensions {
+              width,
+              height,
+              aspectRatio
+            }
+          }
         }
       }
     },
@@ -64,6 +117,8 @@ const projects = await sanityClient.fetch(`
                 key: item._key,
                 url: item.image.asset.url,
                 alt: item.alt || '',
+                width: item.image.asset.metadata?.dimensions?.width,
+                height: item.image.asset.metadata?.dimensions?.height,
               },
             ]
           }
@@ -72,9 +127,23 @@ const projects = await sanityClient.fetch(`
             return item.slides
               .filter((slide) => slide.asset?.url)
               .map((slide, index) => ({
-                key: `${item._key}-${index}`,
+                key: `${item._key}-slide-${index}`,
                 url: slide.asset.url,
                 alt: slide.alt || '',
+                width: slide.asset.metadata?.dimensions?.width,
+                height: slide.asset.metadata?.dimensions?.height,
+              }))
+          }
+
+          if (item.mediaType === 'gallery' && item.galleryImages?.length) {
+            return item.galleryImages
+              .filter((image) => image.asset?.url)
+              .map((image, index) => ({
+                key: `${item._key}-gallery-${index}`,
+                url: image.asset.url,
+                alt: image.alt || '',
+                width: image.asset.metadata?.dimensions?.width,
+                height: image.asset.metadata?.dimensions?.height,
               }))
           }
 
@@ -85,7 +154,9 @@ const projects = await sanityClient.fetch(`
           (item) =>
             (item.mediaType === 'image' && item.image?.asset?.url) ||
             (item.mediaType === 'slideshow' &&
-              item.slides?.some((slide) => slide.asset?.url))
+              item.slides?.some((slide) => slide.asset?.url)) ||
+            (item.mediaType === 'gallery' &&
+              item.galleryImages?.some((image) => image.asset?.url))
         )
 
         return (
@@ -119,7 +190,7 @@ const projects = await sanityClient.fetch(`
                           loop
                           playsinline
                           preload="metadata"
-                          poster={item.poster?.asset?.url}
+                          poster={sanityImage(item.poster?.asset?.url, 1600)}
                           data-video
                         >
                           <source src={item.video.asset.url} />
@@ -186,9 +257,15 @@ const projects = await sanityClient.fetch(`
                             {item.slides.map((slide) => (
                               <div class="slideshow-slide">
                                 <img
-                                  src={slide.asset?.url}
+                                  class="image-reveal"
+                                  src={sanityImage(slide.asset?.url, 1440)}
+                                  srcset={sanitySrcset(slide.asset?.url)}
+                                  sizes="(max-width: 700px) 100vw, 50vw"
+                                  width={slide.asset?.metadata?.dimensions?.width}
+                                  height={slide.asset?.metadata?.dimensions?.height}
                                   alt={slide.alt || ''}
                                   loading="lazy"
+                                  decoding="async"
                                 />
                               </div>
                             ))}
@@ -213,11 +290,43 @@ const projects = await sanityClient.fetch(`
                           <span aria-hidden="true">→</span>
                         </button>
                       </div>
+                    ) : item.mediaType === 'gallery' &&
+                      item.galleryImages?.length ? (
+                      <div class="nested-gallery">
+                        {item.galleryImages.map((image) => (
+                          <div class="nested-gallery-item">
+                            <img
+                              class="image-reveal"
+                              src={sanityImage(image.asset?.url, 1024)}
+                              srcset={sanitySrcset(image.asset?.url)}
+                              sizes="(max-width: 700px) 100vw, 25vw"
+                              width={image.asset?.metadata?.dimensions?.width}
+                              height={image.asset?.metadata?.dimensions?.height}
+                              alt={image.alt || ''}
+                              loading="lazy"
+                              decoding="async"
+                            />
+                          </div>
+                        ))}
+                      </div>
                     ) : item.image?.asset?.url ? (
                       <img
-                        src={item.image.asset.url}
+                        class="image-reveal"
+                        src={sanityImage(
+                          item.image.asset.url,
+                          item.width === 'half' ? 1440 : 1920
+                        )}
+                        srcset={sanitySrcset(item.image.asset.url)}
+                        sizes={
+                          item.width === 'half'
+                            ? '(max-width: 700px) 100vw, 50vw'
+                            : '100vw'
+                        }
+                        width={item.image.asset.metadata?.dimensions?.width}
+                        height={item.image.asset.metadata?.dimensions?.height}
                         alt={item.alt || ''}
                         loading="lazy"
+                        decoding="async"
                       />
                     ) : null
                   }
@@ -237,7 +346,7 @@ const projects = await sanityClient.fetch(`
                             loop
                             playsinline
                             preload="metadata"
-                            poster={item.poster?.asset?.url}
+                            poster={sanityImage(item.poster?.asset?.url, 1600)}
                             data-video
                           >
                             <source src={item.video.asset.url} />
@@ -316,6 +425,7 @@ const projects = await sanityClient.fetch(`
                         {mobileImages.map((image) => (
                           <div class="mobile-image-slide">
                             <img
+                              class="image-reveal"
                               src={image.url}
                               alt={image.alt}
                               loading="lazy"
@@ -354,9 +464,15 @@ const projects = await sanityClient.fetch(`
                   return (
                     <div class="mobile-media-item">
                       <img
-                        src={mobileImages[0].url}
+                        class="image-reveal"
+                        src={sanityImage(mobileImages[0].url, 1024)}
+                        srcset={sanitySrcset(mobileImages[0].url)}
+                        sizes="100vw"
+                        width={mobileImages[0].width}
+                        height={mobileImages[0].height}
                         alt={mobileImages[0].alt}
                         loading="lazy"
+                        decoding="async"
                       />
                     </div>
                   )
@@ -463,6 +579,7 @@ const projects = await sanityClient.fetch(`
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 26px;
+    align-items: stretch;
   }
 
   .mobile-media {
@@ -500,6 +617,49 @@ const projects = await sanityClient.fetch(`
     display: block;
     width: 100%;
     height: auto;
+  }
+
+  .media-item.half {
+    height: 100%;
+  }
+
+  .media-item.half > .custom-video-player,
+  .media-item.half > .nested-gallery {
+    height: 100%;
+  }
+
+  .nested-gallery {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    width: 100%;
+    height: 100%;
+  }
+
+  .nested-gallery-item {
+    min-height: 0;
+  }
+
+  .nested-gallery-item,
+  .nested-gallery-item img {
+    display: block;
+    width: 100%;
+  }
+
+  .nested-gallery-item img {
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .media-item.half .custom-video-player,
+  .media-item.half .custom-video-player video {
+    width: 100%;
+    height: 100%;
+  }
+
+  .media-item.half .custom-video-player video {
+    object-fit: cover;
   }
 
   .project-slideshow {
@@ -758,6 +918,28 @@ const projects = await sanityClient.fetch(`
     }
   }
 
+
+ .image-reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 1500ms ease,
+    transform 1500ms ease;
+}
+
+.image-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+  @media (prefers-reduced-motion: reduce) {
+    .image-reveal {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
+  }
+
   @media (max-width: 700px) {
     .project {
       padding: 125px 20px 80px;
@@ -1007,6 +1189,7 @@ const projects = await sanityClient.fetch(`
 
     let current = 0
     let pointerStartX = null
+    let autoplayInterval
 
     const render = () => {
       track.style.transform = `translateX(-${current * 100}%)`
@@ -1021,12 +1204,28 @@ const projects = await sanityClient.fetch(`
       render()
     }
 
+    const startAutoplay = () => {
+      if (autoplayInterval) {
+        window.clearInterval(autoplayInterval)
+      }
+
+      autoplayInterval = window.setInterval(() => {
+        show(current + 1)
+      }, 4000)
+    }
+
+    const resetAutoplay = () => {
+      startAutoplay()
+    }
+
     previousButton.addEventListener('click', () => {
       show(current - 1)
+      resetAutoplay()
     })
 
     nextButton.addEventListener('click', () => {
       show(current + 1)
+      resetAutoplay()
     })
 
     slideshow.addEventListener('pointerdown', (event) => {
@@ -1046,6 +1245,8 @@ const projects = await sanityClient.fetch(`
       } else {
         show(current - 1)
       }
+
+      resetAutoplay()
     })
 
     slideshow.addEventListener('pointercancel', () => {
@@ -1053,6 +1254,7 @@ const projects = await sanityClient.fetch(`
     })
 
     render()
+    startAutoplay()
 
     const handleResize = () => {
       render()
@@ -1264,4 +1466,38 @@ const projects = await sanityClient.fetch(`
       block: 'start',
     })
   })
+
+  // Fade/slide images in once they are both loaded and in view.
+  const revealImages = document.querySelectorAll('img.image-reveal')
+
+  const revealObserver = new IntersectionObserver(
+    (entries, observer) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return
+
+        const image = entry.target
+
+        const reveal = () => {
+          requestAnimationFrame(() => {
+            image.classList.add('is-visible')
+          })
+        }
+
+        if (image.complete) {
+          reveal()
+        } else {
+          image.addEventListener('load', reveal, {once: true})
+        }
+
+        observer.unobserve(image)
+      })
+    },
+    {
+      rootMargin: '0px 0px 8% 0px',
+      threshold: 0.04,
+    }
+  )
+
+  revealImages.forEach((image) => revealObserver.observe(image))
+
 </script>

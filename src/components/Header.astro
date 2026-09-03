@@ -264,19 +264,21 @@ const settings = await sanityClient.fetch(`
   const backToTop = document.querySelector('.back-to-top')
 
   backToTop?.addEventListener('click', () => {
-    let selector = '[data-scroll-panel="home"]'
+    let selector = '[data-view="home"]'
 
     if (document.documentElement.classList.contains('view-playground')) {
-      selector = '[data-scroll-panel="playground"]'
+      selector = '[data-view="playground"]'
     } else if (document.documentElement.classList.contains('view-info')) {
-      selector = '.info-view'
+      selector = '[data-view="info"]'
     }
 
     const panel = document.querySelector(selector)
 
-    panel?.scrollTo({
-      top: 0,
-      behavior: 'smooth',
-    })
+    if (panel instanceof HTMLElement) {
+      panel.scrollTo({
+        top: 0,
+        behavior: 'smooth',
+      })
+    }
   })
 </script>

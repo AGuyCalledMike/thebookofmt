@@ -1,6 +1,24 @@
 ---
 import { sanityClient } from 'sanity:client'
 
+const imageWidths = [320, 480, 640, 800, 1024, 1280]
+
+function sanityImage(url, width) {
+  if (!url) return undefined
+
+  const separator = url.includes('?') ? '&' : '?'
+
+  return `${url}${separator}auto=format&fit=max&w=${width}&q=82`
+}
+
+function sanitySrcset(url) {
+  if (!url) return undefined
+
+  return imageWidths
+    .map((width) => `${sanityImage(url, width)} ${width}w`)
+    .join(', ')
+}
+
 const playground = await sanityClient.fetch(`
   *[_type == "playground"][0] {
     images[] {
@@ -9,7 +27,14 @@ const playground = await sanityClient.fetch(`
       hidden,
       asset-> {
         url,
-        originalFilename
+        originalFilename,
+        metadata {
+          dimensions {
+            width,
+            height,
+            aspectRatio
+          }
+        }
       }
     },
 
@@ -35,9 +60,15 @@ const videos = playground?.videos?.filter((item) => !item.hidden) ?? []
         {images.map((item) => (
           <figure class="playground-item">
             <img
-              src={item.asset?.url}
+              class="image-reveal"
+              src={sanityImage(item.asset?.url, 800)}
+              srcset={sanitySrcset(item.asset?.url)}
+              sizes="(max-width: 700px) 50vw, (max-width: 900px) 50vw, 25vw"
+              width={item.asset?.metadata?.dimensions?.width}
+              height={item.asset?.metadata?.dimensions?.height}
               alt={item.alt || item.asset?.originalFilename || ''}
               loading="lazy"
+              decoding="async"
             />
           </figure>
         ))}
@@ -79,7 +110,11 @@ const videos = playground?.videos?.filter((item) => !item.hidden) ?? []
   }
 
   .playground-item {
+    display: inline-block;
+    width: 100%;
+    vertical-align: top;
     break-inside: avoid;
+    break-inside: avoid-column;
     margin: 0 0 8px;
   }
 
@@ -90,6 +125,29 @@ const videos = playground?.videos?.filter((item) => !item.hidden) ?? []
     height: auto;
   }
 
+
+  .image-reveal {
+    opacity: 0;
+    transform: translateY(18px);
+    transition:
+      opacity 650ms cubic-bezier(.22, 1, .36, 1),
+      transform 650ms cubic-bezier(.22, 1, .36, 1);
+    will-change: opacity, transform;
+  }
+
+  .image-reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .image-reveal {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
+  }
+
   @media (max-width: 900px) {
     .playground-masonry {
       columns: 2;
@@ -97,19 +155,55 @@ const videos = playground?.videos?.filter((item) => !item.hidden) ?? []
   }
 
   @media (max-width: 700px) {
-  .playground-masonry {
-    columns: 3;
-    column-gap: 4px;
+    .playground-masonry {
+      columns: 2;
+      column-gap: 4px;
+      padding: 100px 4px 0;
+    }
 
-    padding: 100px 4px 0;
-  }
+    .playground-videos {
+      padding-top: 0;
+    }
 
-  .playground-videos {
-    padding-top: 0;
+    .playground-item {
+      margin-bottom: 4px;
+    }
   }
-
-  .playground-item {
-    margin-bottom: 4px;
-  }
-}
 </style>
+
+<script>
+
+  // Fade/slide images in once they are both loaded and in view.
+  const revealImages = document.querySelectorAll('img.image-reveal')
+
+  const revealObserver = new IntersectionObserver(
+    (entries, observer) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return
+
+        const image = entry.target
+
+        const reveal = () => {
+          requestAnimationFrame(() => {
+            image.classList.add('is-visible')
+          })
+        }
+
+        if (image.complete) {
+          reveal()
+        } else {
+          image.addEventListener('load', reveal, {once: true})
+        }
+
+        observer.unobserve(image)
+      })
+    },
+    {
+      rootMargin: '0px 0px 8% 0px',
+      threshold: 0.04,
+    }
+  )
+
+  revealImages.forEach((image) => revealObserver.observe(image))
+
+</script>
