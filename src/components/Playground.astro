@@ -94,15 +94,18 @@ const videos = playground?.videos?.filter((item) => !item.hidden) ?? []
 <style>
   .playground-panel {
     min-height: 100%;
-    background: #000;
-    color: #fff;
+    background: var(--black);
+    color: var(--white);
   }
 
   .playground-masonry {
     columns: 4;
-    column-gap: 8px;
+    column-gap: var(--playground-gap);
 
-    padding: 120px 40px 40px;
+    padding:
+      var(--playground-top-space)
+      var(--playground-gutter)
+      var(--playground-gutter);
   }
 
   .playground-videos {
@@ -115,7 +118,7 @@ const videos = playground?.videos?.filter((item) => !item.hidden) ?? []
     vertical-align: top;
     break-inside: avoid;
     break-inside: avoid-column;
-    margin: 0 0 8px;
+    margin: 0 0 var(--playground-gap);
   }
 
   .playground-item img,
@@ -125,13 +128,12 @@ const videos = playground?.videos?.filter((item) => !item.hidden) ?? []
     height: auto;
   }
 
-
   .image-reveal {
     opacity: 0;
-    transform: translateY(18px);
+    transform: translateY(var(--reveal-distance));
     transition:
-      opacity 650ms cubic-bezier(.22, 1, .36, 1),
-      transform 650ms cubic-bezier(.22, 1, .36, 1);
+      opacity var(--reveal-opacity-duration) var(--reveal-ease),
+      transform var(--reveal-duration) var(--reveal-ease);
     will-change: opacity, transform;
   }
 
@@ -157,8 +159,11 @@ const videos = playground?.videos?.filter((item) => !item.hidden) ?? []
   @media (max-width: 700px) {
     .playground-masonry {
       columns: 2;
-      column-gap: 4px;
-      padding: 100px 4px 0;
+      column-gap: var(--playground-gap-mobile);
+      padding:
+        var(--playground-top-space-mobile)
+        var(--playground-gutter-mobile)
+        0;
     }
 
     .playground-videos {
@@ -166,13 +171,12 @@ const videos = playground?.videos?.filter((item) => !item.hidden) ?? []
     }
 
     .playground-item {
-      margin-bottom: 4px;
+      margin-bottom: var(--playground-gap-mobile);
     }
   }
 </style>
 
 <script>
-
   // Fade/slide images in once they are both loaded and in view.
   const revealImages = document.querySelectorAll('img.image-reveal')
 
@@ -205,5 +209,4 @@ const videos = playground?.videos?.filter((item) => !item.hidden) ?? []
   )
 
   revealImages.forEach((image) => revealObserver.observe(image))
-
 </script>

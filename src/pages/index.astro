@@ -8,8 +8,7 @@ function sanityImage(url, width) {
   if (!url) return undefined
 
   const separator = url.includes('?') ? '&' : '?'
-
-  return `${url}${separator}auto=format&fit=max&w=${width}&q=85`
+  return `${url}${separator}auto=format&fit=max&w=${width}&q=82`
 }
 
 function sanitySrcset(url) {
@@ -82,6 +81,7 @@ const projects = await sanityClient.fetch(`
         alt,
         asset-> {
           url,
+          originalFilename,
           metadata {
             dimensions {
               width,
@@ -127,7 +127,7 @@ const projects = await sanityClient.fetch(`
             return item.slides
               .filter((slide) => slide.asset?.url)
               .map((slide, index) => ({
-                key: `${item._key}-slide-${index}`,
+                key: `${item._key}-${index}`,
                 url: slide.asset.url,
                 alt: slide.alt || '',
                 width: slide.asset.metadata?.dimensions?.width,
@@ -141,7 +141,7 @@ const projects = await sanityClient.fetch(`
               .map((image, index) => ({
                 key: `${item._key}-gallery-${index}`,
                 url: image.asset.url,
-                alt: image.alt || '',
+                alt: image.alt || image.asset.originalFilename || '',
                 width: image.asset.metadata?.dimensions?.width,
                 height: image.asset.metadata?.dimensions?.height,
               }))
@@ -164,13 +164,23 @@ const projects = await sanityClient.fetch(`
             class="project"
             data-project
             data-project-slug={project.slug}
+            data-project-tags={(project.tags ?? []).join('|')}
             id={project.slug ? `project-${project.slug}` : undefined}
           >
             <h2>{project.headline}</h2>
 
             <div class="tags">
               {project.tags?.map((tag) => (
-                <span>{tag}</span>
+                <button
+                  class="project-tag"
+                  type="button"
+                  data-project-tag
+                  data-tag={tag}
+                  aria-pressed="false"
+                >
+                  <span data-tag-label>{tag}</span>
+                  <span class="tag-clear" aria-hidden="true"> ×</span>
+                </button>
               ))}
             </div>
 
@@ -186,14 +196,13 @@ const projects = await sanityClient.fetch(`
                     item.mediaType === 'video' && item.video?.asset?.url ? (
                       <div class="custom-video-player" data-video-player>
                         <video
-                          muted
                           loop
                           playsinline
-                          preload="metadata"
+                          preload="none"
                           poster={sanityImage(item.poster?.asset?.url, 1600)}
                           data-video
                         >
-                          <source src={item.video.asset.url} />
+                          <source data-src={item.video.asset.url} />
                         </video>
 
                         <button
@@ -232,9 +241,9 @@ const projects = await sanityClient.fetch(`
                             class="video-control-button"
                             type="button"
                             data-video-mute
-                            aria-label="Unmute video"
+                            aria-label="Mute video"
                           >
-                            <span data-video-mute-icon aria-hidden="true">M</span>
+                            <span data-video-mute-icon aria-hidden="true">S</span>
                           </button>
 
                           <button
@@ -247,6 +256,24 @@ const projects = await sanityClient.fetch(`
                           </button>
                         </div>
                       </div>
+                    ) : item.mediaType === 'gallery' && item.galleryImages?.length ? (
+                      <div class="project-gallery">
+                        {item.galleryImages.map((image) => (
+                          image.asset?.url ? (
+                            <img
+                              src={sanityImage(image.asset.url, 1440)}
+                              srcset={sanitySrcset(image.asset.url)}
+                              sizes={item.width === 'half'
+                                ? '(max-width: 700px) 100vw, 25vw'
+                                : '(max-width: 700px) 100vw, 50vw'}
+                              width={image.asset.metadata?.dimensions?.width}
+                              height={image.asset.metadata?.dimensions?.height}
+                              alt={image.alt || image.asset.originalFilename || ''}
+                              decoding="async"
+                            />
+                          ) : null
+                        ))}
+                      </div>
                     ) : item.mediaType === 'slideshow' && item.slides?.length ? (
                       <div
                         class="project-slideshow"
@@ -257,14 +284,14 @@ const projects = await sanityClient.fetch(`
                             {item.slides.map((slide) => (
                               <div class="slideshow-slide">
                                 <img
-                                  class="image-reveal"
-                                  src={sanityImage(slide.asset?.url, 1440)}
+                                  src={sanityImage(slide.asset?.url, 1920)}
                                   srcset={sanitySrcset(slide.asset?.url)}
-                                  sizes="(max-width: 700px) 100vw, 50vw"
+                                  sizes={item.width === 'half'
+                                    ? '(max-width: 700px) 100vw, 50vw'
+                                    : '100vw'}
                                   width={slide.asset?.metadata?.dimensions?.width}
                                   height={slide.asset?.metadata?.dimensions?.height}
                                   alt={slide.alt || ''}
-                                  loading="lazy"
                                   decoding="async"
                                 />
                               </div>
@@ -290,42 +317,16 @@ const projects = await sanityClient.fetch(`
                           <span aria-hidden="true">→</span>
                         </button>
                       </div>
-                    ) : item.mediaType === 'gallery' &&
-                      item.galleryImages?.length ? (
-                      <div class="nested-gallery">
-                        {item.galleryImages.map((image) => (
-                          <div class="nested-gallery-item">
-                            <img
-                              class="image-reveal"
-                              src={sanityImage(image.asset?.url, 1024)}
-                              srcset={sanitySrcset(image.asset?.url)}
-                              sizes="(max-width: 700px) 100vw, 25vw"
-                              width={image.asset?.metadata?.dimensions?.width}
-                              height={image.asset?.metadata?.dimensions?.height}
-                              alt={image.alt || ''}
-                              loading="lazy"
-                              decoding="async"
-                            />
-                          </div>
-                        ))}
-                      </div>
                     ) : item.image?.asset?.url ? (
                       <img
-                        class="image-reveal"
-                        src={sanityImage(
-                          item.image.asset.url,
-                          item.width === 'half' ? 1440 : 1920
-                        )}
+                        src={sanityImage(item.image.asset.url, 1920)}
                         srcset={sanitySrcset(item.image.asset.url)}
-                        sizes={
-                          item.width === 'half'
-                            ? '(max-width: 700px) 100vw, 50vw'
-                            : '100vw'
-                        }
+                        sizes={item.width === 'half'
+                          ? '(max-width: 700px) 100vw, 50vw'
+                          : '100vw'}
                         width={item.image.asset.metadata?.dimensions?.width}
                         height={item.image.asset.metadata?.dimensions?.height}
                         alt={item.alt || ''}
-                        loading="lazy"
                         decoding="async"
                       />
                     ) : null
@@ -342,14 +343,13 @@ const projects = await sanityClient.fetch(`
                     <div class="mobile-media-item">
                       <div class="custom-video-player" data-video-player>
                           <video
-                            muted
-                            loop
+                              loop
                             playsinline
-                            preload="metadata"
+                            preload="none"
                             poster={sanityImage(item.poster?.asset?.url, 1600)}
                             data-video
                           >
-                            <source src={item.video.asset.url} />
+                            <source data-src={item.video.asset.url} />
                           </video>
 
                           <button
@@ -388,9 +388,9 @@ const projects = await sanityClient.fetch(`
                               class="video-control-button"
                               type="button"
                               data-video-mute
-                              aria-label="Unmute video"
+                              aria-label="Mute video"
                             >
-                              <span data-video-mute-icon aria-hidden="true">M</span>
+                              <span data-video-mute-icon aria-hidden="true">S</span>
                             </button>
 
                             <button
@@ -425,10 +425,13 @@ const projects = await sanityClient.fetch(`
                         {mobileImages.map((image) => (
                           <div class="mobile-image-slide">
                             <img
-                              class="image-reveal"
-                              src={image.url}
+                              src={sanityImage(image.url, 1024)}
+                              srcset={sanitySrcset(image.url)}
+                              sizes="100vw"
+                              width={image.width}
+                              height={image.height}
                               alt={image.alt}
-                              loading="lazy"
+                              decoding="async"
                               draggable="false"
                             />
                           </div>
@@ -448,14 +451,6 @@ const projects = await sanityClient.fetch(`
                         data-mobile-slide-next
                         aria-label="Next image"
                       ></button>
-
-                      <span
-                        class="mobile-slide-count"
-                        data-mobile-slide-count
-                        aria-live="polite"
-                      >
-                        1 / {mobileImages.length}
-                      </span>
                     </div>
                   )
                 }
@@ -464,14 +459,12 @@ const projects = await sanityClient.fetch(`
                   return (
                     <div class="mobile-media-item">
                       <img
-                        class="image-reveal"
                         src={sanityImage(mobileImages[0].url, 1024)}
                         srcset={sanitySrcset(mobileImages[0].url)}
                         sizes="100vw"
                         width={mobileImages[0].width}
                         height={mobileImages[0].height}
                         alt={mobileImages[0].alt}
-                        loading="lazy"
                         decoding="async"
                       />
                     </div>
@@ -541,19 +534,23 @@ const projects = await sanityClient.fetch(`
 
 <style>
   .project {
-    padding: 190px 60px 120px;
+    padding: var(--project-top-space) var(--project-gutter) var(--project-bottom-space);
     scroll-margin-top: 0;
   }
 
-  h2 {
-    width: min(720px, 90%);
-    margin: 0 auto 24px;
-    font-family: 'Cooper', serif;
-    font-size: 52px;
-    font-weight: 300;
-    line-height: 0.98;
-    text-align: center;
-  }
+h2 {
+  width: min(1180px, 92%);
+  margin: 0 auto var(--project-headline-bottom-space);
+
+  font-family: var(--font-display);
+  font-size: var(--project-headline-size);
+  font-weight: 300;
+  line-height: var(--project-headline-line-height);
+  letter-spacing: var(--project-headline-letter-spacing);
+
+  text-align: center;
+  text-wrap: balance;
+}
 
   .tags {
     display: flex;
@@ -563,45 +560,95 @@ const projects = await sanityClient.fetch(`
     margin-bottom: 28px;
   }
 
-  .tags span {
+  .project-tag {
     padding: 10px 13px 8px;
     border: 1px solid #292929;
     border-radius: 4px;
-    background: #111;
-    font-size: 10px;
+    background: var(--near-black);
+    font-family: 'Aeonik Fono', monospace;
+    font-size: var(--project-tag-size);
     line-height: 1;
     letter-spacing: 0.18em;
     text-transform: uppercase;
     color: #aaa;
+    cursor: pointer;
+    transition: border-color 160ms ease, color 160ms ease, opacity 160ms ease;
+  }
+
+  .project-tag:hover,
+  .project-tag:focus-visible,
+  .project-tag[aria-pressed='true'] {
+    border-color: #777;
+    color: var(--white);
+  }
+
+  .project-tag:focus-visible {
+    outline: none;
+  }
+
+  .tag-clear {
+    display: none;
+  }
+
+  .project-tag[aria-pressed='true'] .tag-clear {
+    display: inline;
+  }
+
+  .project {
+    transition: opacity 180ms ease;
+  }
+
+  .project.is-filtering-out {
+    opacity: 0;
+  }
+
+  .project[hidden] {
+    display: none;
+  }
+
+  /*
+    Strong Cargo-style scroll reveal.
+    Projects start visually black/invisible and slide upward into place.
+  */
+  .project[data-reveal-ready] > * {
+    opacity: 0;
+    transform: translateY(var(--reveal-distance));
+    transition:
+      opacity var(--reveal-opacity-duration) var(--reveal-ease),
+      transform var(--reveal-duration) var(--reveal-ease);
+    will-change: opacity, transform;
+  }
+
+  .project[data-reveal-ready].is-revealed > * {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* A small stagger makes the arrival feel more designed */
+  .project[data-reveal-ready].is-revealed > :nth-child(2) {
+    transition-delay: 60ms;
+  }
+
+  .project[data-reveal-ready].is-revealed > :nth-child(3) {
+    transition-delay: 120ms;
+  }
+
+  .project[data-reveal-ready].is-revealed > :nth-child(4) {
+    transition-delay: 180ms;
+  }
+
+  .project[data-reveal-ready].is-revealed > :nth-child(n + 5) {
+    transition-delay: 240ms;
   }
 
   .media-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 26px;
-    align-items: stretch;
+    gap: var(--project-media-gap);
   }
 
   .mobile-media {
     display: none;
-  }
-
-  .mobile-slide-count {
-    position: absolute;
-    right: 12px;
-    bottom: 12px;
-    z-index: 20;
-    display: block;
-    padding: 6px 8px 5px;
-    background: #000;
-    font-family: 'Aeonik Fono', monospace;
-    font-size: 10px;
-    line-height: 1;
-    letter-spacing: 0.04em;
-    color: #fff;
-    opacity: 1;
-    visibility: visible;
-    pointer-events: none;
   }
 
   .media-item.full {
@@ -619,46 +666,20 @@ const projects = await sanityClient.fetch(`
     height: auto;
   }
 
-  .media-item.half {
-    height: 100%;
-  }
-
-  .media-item.half > .custom-video-player,
-  .media-item.half > .nested-gallery {
-    height: 100%;
-  }
-
-  .nested-gallery {
+  .project-gallery {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-template-rows: repeat(2, minmax(0, 1fr));
-    gap: 12px;
+    gap: var(--project-media-gap);
     width: 100%;
-    height: 100%;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
   }
 
-  .nested-gallery-item {
-    min-height: 0;
-  }
-
-  .nested-gallery-item,
-  .nested-gallery-item img {
+  .project-gallery img {
     display: block;
     width: 100%;
-  }
-
-  .nested-gallery-item img {
     height: 100%;
-    object-fit: cover;
-  }
-
-  .media-item.half .custom-video-player,
-  .media-item.half .custom-video-player video {
-    width: 100%;
-    height: 100%;
-  }
-
-  .media-item.half .custom-video-player video {
     object-fit: cover;
   }
 
@@ -740,15 +761,16 @@ const projects = await sanityClient.fetch(`
     outline: none;
   }
 
-  .meta {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 26px;
-    margin-top: 26px;
-    font-size: 13px;
-    line-height: 1.4;
-    color: #aaa;
-  }
+.meta {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--project-media-gap);
+  margin-top: var(--project-meta-top-space);
+
+  font-size: var(--project-meta-size);
+  line-height: var(--project-meta-line-height);
+  color: var(--project-meta-color);
+}
 
   .meta p {
     margin: 0;
@@ -757,8 +779,8 @@ const projects = await sanityClient.fetch(`
   .description {
     width: min(720px, 100%);
     margin: 58px auto 0;
-    font-size: 15px;
-    line-height: 1.65;
+   font-size: var(--project-body-size);
+line-height: var(--project-body-line-height);
     color: #888;
   }
 
@@ -791,7 +813,7 @@ const projects = await sanityClient.fetch(`
     position: relative;
     width: 100%;
     overflow: hidden;
-    background: #000;
+    background: var(--black);
   }
 
   .custom-video-player video {
@@ -824,7 +846,7 @@ const projects = await sanityClient.fetch(`
     margin-left: 4px;
     border-top: 10px solid transparent;
     border-bottom: 10px solid transparent;
-    border-left: 16px solid #fff;
+    border-left: 16px solid var(--white);
   }
 
   .custom-video-player.has-started .video-play-large {
@@ -867,7 +889,7 @@ const projects = await sanityClient.fetch(`
     padding: 0;
     border: 0;
     background: transparent;
-    color: #fff;
+    color: var(--white);
     font-family: 'Aeonik Fono', monospace;
     font-size: 13px;
     line-height: 1;
@@ -891,7 +913,7 @@ const projects = await sanityClient.fetch(`
     appearance: none;
     border: 0;
     border-radius: 50%;
-    background: #fff;
+    background: var(--white);
   }
 
   .video-progress::-moz-range-thumb {
@@ -899,7 +921,7 @@ const projects = await sanityClient.fetch(`
     height: 10px;
     border: 0;
     border-radius: 50%;
-    background: #fff;
+    background: var(--white);
   }
 
   .video-time {
@@ -908,7 +930,7 @@ const projects = await sanityClient.fetch(`
     font-family: 'Aeonik Fono', monospace;
     font-size: 10px;
     line-height: 1;
-    color: #fff;
+    color: var(--white);
   }
 
   @media (hover: none) {
@@ -918,38 +940,18 @@ const projects = await sanityClient.fetch(`
     }
   }
 
-
- .image-reveal {
-  opacity: 0;
-  transform: translateY(18px);
-  transition:
-    opacity 1500ms ease,
-    transform 1500ms ease;
-}
-
-.image-reveal.is-visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-  @media (prefers-reduced-motion: reduce) {
-    .image-reveal {
-      opacity: 1;
-      transform: none;
-      transition: none;
-    }
-  }
-
   @media (max-width: 700px) {
     .project {
-      padding: 125px 20px 80px;
+      padding: var(--project-top-space-mobile) var(--project-gutter-mobile) var(--project-bottom-space-mobile);
     }
 
-    h2 {
+h2 {
       width: 100%;
-      margin-bottom: 20px;
-      font-size: 36px;
-      line-height: 1;
+      margin-bottom: var(--project-headline-bottom-space);
+      font-size: var(--project-headline-size-mobile);
+      line-height: var(--project-headline-line-height);
+      letter-spacing: var(--project-headline-letter-spacing);
+      text-wrap: balance;
     }
 
     .tags {
@@ -957,9 +959,9 @@ const projects = await sanityClient.fetch(`
       margin-bottom: 22px;
     }
 
-    .tags span {
+    .project-tag {
       padding: 8px 10px 7px;
-      font-size: 9px;
+      font-size: var(--project-tag-size-mobile);
     }
 
     .desktop-media {
@@ -970,9 +972,9 @@ const projects = await sanityClient.fetch(`
       display: flex;
       flex-direction: column;
       gap: 12px;
-      width: calc(100% + 40px);
-      margin-left: -20px;
-      margin-right: -20px;
+      width: calc(100% + (var(--project-gutter-mobile) * 2));
+      margin-left: calc(var(--project-gutter-mobile) * -1);
+      margin-right: calc(var(--project-gutter-mobile) * -1);
     }
 
     .mobile-media-item,
@@ -987,6 +989,7 @@ const projects = await sanityClient.fetch(`
 
     .mobile-image-slideshow {
       position: relative;
+      isolation: isolate;
       width: 100%;
       overflow: hidden;
       touch-action: pan-y;
@@ -1035,12 +1038,13 @@ const projects = await sanityClient.fetch(`
       display: none;
     }
 
-    .meta {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 16px;
-      margin-top: 18px;
-      font-size: 11px;
-    }
+.meta {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: var(--project-meta-top-space);
+  font-size: var(--project-meta-size-mobile);
+  line-height: var(--project-meta-line-height);
+}
 
     .secondary-meta {
       display: none;
@@ -1048,12 +1052,18 @@ const projects = await sanityClient.fetch(`
 
     .description {
       margin-top: 42px;
-      font-size: 13px;
-      line-height: 1.6;
+      font-size: var(--project-body-size-mobile);
+      line-height: var(--project-body-line-height);
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
+    .project[data-reveal-ready] > * {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
+
     .slideshow-track {
       transition: none;
     }
@@ -1062,6 +1072,52 @@ const projects = await sanityClient.fetch(`
 
 <script>
   const videoPlayers = document.querySelectorAll('[data-video-player]')
+
+  // Load video files only when their player is approaching the viewport.
+  // Posters remain available immediately, so the player still has a visual preview.
+  const loadVideoSource = (video) => {
+    if (!(video instanceof HTMLVideoElement)) return
+    if (video.dataset.sourceLoaded === 'true') return
+
+    const source = video.querySelector('source[data-src]')
+    if (!(source instanceof HTMLSourceElement)) return
+
+    source.src = source.dataset.src || ''
+    source.removeAttribute('data-src')
+    video.dataset.sourceLoaded = 'true'
+    video.load()
+  }
+
+  const videoProjectsPanel = document.querySelector('.projects-view')
+
+  if ('IntersectionObserver' in window && videoProjectsPanel instanceof Element) {
+    const videoLoadObserver = new IntersectionObserver(
+      (entries, observer) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return
+
+          const player = entry.target
+          const video = player.querySelector('[data-video]')
+
+          loadVideoSource(video)
+          observer.unobserve(player)
+        })
+      },
+      {
+        root: videoProjectsPanel,
+        threshold: 0,
+        rootMargin: '100% 0px 100% 0px',
+      }
+    )
+
+    videoPlayers.forEach((player) => videoLoadObserver.observe(player))
+  } else {
+    // Safe fallback for older browsers.
+    videoPlayers.forEach((player) => {
+      const video = player.querySelector('[data-video]')
+      loadVideoSource(video)
+    })
+  }
 
   function formatTime(seconds) {
     if (!Number.isFinite(seconds)) return '0:00'
@@ -1092,6 +1148,12 @@ const projects = await sanityClient.fetch(`
     if (!(time instanceof HTMLElement)) return
     if (!(muteButton instanceof HTMLButtonElement)) return
     if (!(fullscreenButton instanceof HTMLButtonElement)) return
+
+    // Sound is on by default. Setting this explicitly also avoids
+    // Safari/iOS retaining a muted state from a previous media session.
+    video.defaultMuted = false
+    video.muted = false
+    video.volume = 1
 
     const updatePlayState = () => {
       if (playIcon instanceof HTMLElement) {
@@ -1124,7 +1186,18 @@ const projects = await sanityClient.fetch(`
     }
 
     const togglePlay = async () => {
+      // A direct tap/click should always load the source immediately,
+      // even if IntersectionObserver has not fired yet.
+      loadVideoSource(video)
+
       if (video.paused) {
+        // This runs inside the user's tap/click, which is the safest place
+        // to enable audio on iPhone/Safari.
+        video.defaultMuted = false
+        video.muted = false
+        video.volume = 1
+        updateMuteState()
+
         player.classList.add('has-started')
         await video.play()
       } else {
@@ -1180,7 +1253,6 @@ const projects = await sanityClient.fetch(`
     const slides = Array.from(slideshow.querySelectorAll('.mobile-image-slide'))
     const previousButton = slideshow.querySelector('[data-mobile-slide-prev]')
     const nextButton = slideshow.querySelector('[data-mobile-slide-next]')
-    const count = slideshow.querySelector('[data-mobile-slide-count]')
 
     if (!(track instanceof HTMLElement)) return
     if (!(previousButton instanceof HTMLButtonElement)) return
@@ -1189,14 +1261,10 @@ const projects = await sanityClient.fetch(`
 
     let current = 0
     let pointerStartX = null
-    let autoplayInterval
+    let autoplayInterval = null
 
     const render = () => {
       track.style.transform = `translateX(-${current * 100}%)`
-
-      if (count instanceof HTMLElement) {
-        count.textContent = `${current + 1} / ${slides.length}`
-      }
     }
 
     const show = (index) => {
@@ -1204,31 +1272,36 @@ const projects = await sanityClient.fetch(`
       render()
     }
 
-    const startAutoplay = () => {
+    const stopAutoplay = () => {
       if (autoplayInterval) {
         window.clearInterval(autoplayInterval)
+        autoplayInterval = null
       }
+    }
+
+    const startAutoplay = () => {
+      stopAutoplay()
+
+      if (slides.length < 2) return
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
       autoplayInterval = window.setInterval(() => {
         show(current + 1)
       }, 4000)
     }
 
-    const resetAutoplay = () => {
-      startAutoplay()
-    }
-
     previousButton.addEventListener('click', () => {
+      stopAutoplay()
       show(current - 1)
-      resetAutoplay()
     })
 
     nextButton.addEventListener('click', () => {
+      stopAutoplay()
       show(current + 1)
-      resetAutoplay()
     })
 
     slideshow.addEventListener('pointerdown', (event) => {
+      stopAutoplay()
       pointerStartX = event.clientX
     })
 
@@ -1245,8 +1318,6 @@ const projects = await sanityClient.fetch(`
       } else {
         show(current - 1)
       }
-
-      resetAutoplay()
     })
 
     slideshow.addEventListener('pointercancel', () => {
@@ -1262,6 +1333,147 @@ const projects = await sanityClient.fetch(`
 
     window.addEventListener('resize', handleResize)
   })
+
+  // Strong project scroll-in reveal
+  const revealProjects = Array.from(document.querySelectorAll('[data-project]'))
+  const projectsPanel = document.querySelector('.projects-view')
+
+  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    revealProjects.forEach((project, index) => {
+      project.setAttribute('data-reveal-ready', '')
+
+      // Keep the first project present on initial load.
+      if (index === 0) {
+        project.classList.add('is-revealed')
+      }
+    })
+
+    if (projectsPanel instanceof Element) {
+      const revealObserver = new IntersectionObserver(
+        (entries, observer) => {
+          entries.forEach((entry) => {
+            if (!entry.isIntersecting) return
+
+            entry.target.classList.add('is-revealed')
+            observer.unobserve(entry.target)
+          })
+        },
+        {
+          root: projectsPanel,
+          threshold: 0.08,
+          rootMargin: '0px 0px -12% 0px',
+        }
+      )
+
+      revealProjects.slice(1).forEach((project) => revealObserver.observe(project))
+    }
+  }
+
+  // Project tag filtering
+  const allProjects = Array.from(document.querySelectorAll('[data-project]'))
+  const allTagButtons = Array.from(document.querySelectorAll('[data-project-tag]'))
+
+  const normaliseTag = (tag) =>
+    String(tag || '').trim().toLowerCase()
+
+  let activeTag = null
+  let filterTimer = null
+
+  const projectHasTag = (project, tag) => {
+    const tags = String(project.getAttribute('data-project-tags') || '')
+      .split('|')
+      .map(normaliseTag)
+      .filter(Boolean)
+
+    return tags.includes(tag)
+  }
+
+  const updateTagButtons = () => {
+    allTagButtons.forEach((button) => {
+      if (!(button instanceof HTMLButtonElement)) return
+      const buttonTag = normaliseTag(button.dataset.tag)
+      button.setAttribute(
+        'aria-pressed',
+        activeTag && buttonTag === activeTag ? 'true' : 'false'
+      )
+    })
+  }
+
+  const updateTagUrl = () => {
+    const url = new URL(window.location.href)
+
+    if (activeTag) {
+      url.searchParams.set('tag', activeTag)
+    } else {
+      url.searchParams.delete('tag')
+    }
+
+    window.history.replaceState({}, '', url)
+  }
+
+  const applyProjectFilter = ({scrollToFirst = false} = {}) => {
+    if (filterTimer) window.clearTimeout(filterTimer)
+
+    const matchingProjects = allProjects.filter((project) =>
+      activeTag ? projectHasTag(project, activeTag) : true
+    )
+
+    allProjects.forEach((project) => {
+      const shouldShow = matchingProjects.includes(project)
+
+      if (shouldShow) {
+        project.hidden = false
+        requestAnimationFrame(() => {
+          project.classList.remove('is-filtering-out')
+        })
+      } else {
+        project.classList.add('is-filtering-out')
+      }
+    })
+
+    filterTimer = window.setTimeout(() => {
+      allProjects.forEach((project) => {
+        project.hidden = !matchingProjects.includes(project)
+      })
+
+      if (scrollToFirst && matchingProjects.length) {
+        matchingProjects[0].scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        })
+      }
+    }, 180)
+
+    updateTagButtons()
+    updateTagUrl()
+  }
+
+  allTagButtons.forEach((button) => {
+    if (!(button instanceof HTMLButtonElement)) return
+
+    button.addEventListener('click', () => {
+      const clickedTag = normaliseTag(button.dataset.tag)
+      if (!clickedTag) return
+
+      activeTag = activeTag === clickedTag ? null : clickedTag
+      applyProjectFilter({scrollToFirst: true})
+    })
+  })
+
+  const tagFromUrl = normaliseTag(
+    new URL(window.location.href).searchParams.get('tag')
+  )
+
+  if (tagFromUrl) {
+    const tagExists = allTagButtons.some(
+      (button) => normaliseTag(button.dataset.tag) === tagFromUrl
+    )
+
+    if (tagExists) {
+      activeTag = tagFromUrl
+      applyProjectFilter()
+    }
+  }
 
   // Read more / read less
   const descriptions = document.querySelectorAll('[data-project-description]')
@@ -1401,9 +1613,10 @@ const projects = await sanityClient.fetch(`
 
   // Arrow-key navigation between projects.
   // Normal scrolling is untouched; this only responds to deliberate ↑ / ↓ presses.
-  const projectSections = Array.from(
-    document.querySelectorAll('[data-project]')
-  )
+  const getVisibleProjectSections = () =>
+    Array.from(document.querySelectorAll('[data-project]')).filter(
+      (project) => !project.hidden
+    )
 
   function isTypingOrUsingControl() {
     const active = document.activeElement
@@ -1417,7 +1630,7 @@ const projects = await sanityClient.fetch(`
     )
   }
 
-  function getCurrentProjectIndex() {
+  function getCurrentProjectIndex(projectSections) {
     const marker = window.innerHeight * 0.35
 
     let bestIndex = 0
@@ -1448,9 +1661,11 @@ const projects = await sanityClient.fetch(`
     if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return
     if (isTypingOrUsingControl()) return
     if (!document.documentElement.classList.contains('view-home')) return
+    const projectSections = getVisibleProjectSections()
+
     if (!projectSections.length) return
 
-    const currentIndex = getCurrentProjectIndex()
+    const currentIndex = getCurrentProjectIndex(projectSections)
 
     const targetIndex =
       event.key === 'ArrowDown'
@@ -1466,38 +1681,4 @@ const projects = await sanityClient.fetch(`
       block: 'start',
     })
   })
-
-  // Fade/slide images in once they are both loaded and in view.
-  const revealImages = document.querySelectorAll('img.image-reveal')
-
-  const revealObserver = new IntersectionObserver(
-    (entries, observer) => {
-      entries.forEach((entry) => {
-        if (!entry.isIntersecting) return
-
-        const image = entry.target
-
-        const reveal = () => {
-          requestAnimationFrame(() => {
-            image.classList.add('is-visible')
-          })
-        }
-
-        if (image.complete) {
-          reveal()
-        } else {
-          image.addEventListener('load', reveal, {once: true})
-        }
-
-        observer.unobserve(image)
-      })
-    },
-    {
-      rootMargin: '0px 0px 8% 0px',
-      threshold: 0.04,
-    }
-  )
-
-  revealImages.forEach((image) => revealObserver.observe(image))
-
 </script>

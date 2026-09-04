@@ -1,0 +1,91 @@
+---
+const year = new Date().getFullYear()
+---
+
+<footer class="site-footer">
+  <div
+    class="footer-mark"
+    role="img"
+    aria-label="Michael Thomason"
+  ></div>
+
+  <div class="footer-meta">
+    <span>© {year} Michael Thomason</span>
+
+    <div class="footer-links">
+      <a href="mailto:hello@thebookofmt.com">Email</a>
+      <a href="https://www.linkedin.com/" target="_blank" rel="noreferrer">LinkedIn</a>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    width: 100%;
+    padding: var(--footer-top-space) var(--footer-gutter) var(--footer-bottom-space);
+    color: inherit;
+  }
+
+  .footer-mark {
+    width: 100%;
+    aspect-ratio: 5 / 1;
+
+    background: currentColor;
+
+    -webkit-mask-image: url('/footer-mark.svg');
+    mask-image: url('/footer-mark.svg');
+
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+
+    -webkit-mask-position: center;
+    mask-position: center;
+
+    -webkit-mask-size: contain;
+    mask-size: contain;
+  }
+
+  .footer-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 24px;
+    margin-top: 40px;
+
+    font-family: var(--font-mono);
+    font-size: 10px;
+    line-height: 1.4;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 18px;
+  }
+
+  .footer-links a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .footer-links a:hover,
+  .footer-links a:focus-visible {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  @media (max-width: 700px) {
+    .site-footer {
+      padding: var(--footer-top-space-mobile) var(--footer-gutter-mobile) var(--footer-bottom-space-mobile);
+    }
+
+    .footer-mark {
+      aspect-ratio: 3 / 1;
+    }
+
+    .footer-meta {
+      align-items: flex-start;
+      margin-top: 28px;
+    }
+  }
+</style>

@@ -53,57 +53,20 @@ const settings = await sanityClient.fetch(`
     padding: 0;
     border: 0;
     background: transparent;
-
     color: #888;
     font: inherit;
     text-decoration: none;
-
     cursor: pointer;
     pointer-events: auto;
-
     transition: color 150ms ease;
   }
 
   .site-header > button:not(.eyes) {
-    position: relative;
     justify-self: center;
-  }
-
-  .site-header > button:not(.eyes)::after {
-    content: '';
-
-    position: absolute;
-    left: 0;
-    bottom: -4px;
-
-    width: 100%;
-    height: 1px;
-
-    background: currentColor;
-
-    transform: scaleX(0);
-    transform-origin: left;
-
-    transition: transform 220ms ease;
-  }
-
-  .site-header > button:not(.eyes):hover::after {
-    transform: scaleX(1);
   }
 
   .site-header button:hover {
     color: white;
-  }
-
-  :global(html.view-home)
-    .site-header > button[data-view-trigger="home"]:not(.eyes)::after,
-
-  :global(html.view-info)
-    .site-header > button[data-view-trigger="info"]::after,
-
-  :global(html.view-playground)
-    .site-header > button[data-view-trigger="playground"]::after {
-    transform: scaleX(1);
   }
 
   :global(html.view-info) .site-header button {
@@ -123,13 +86,10 @@ const settings = await sanityClient.fetch(`
   .eye {
     position: relative;
     display: block;
-
     width: 19px;
     height: 24px;
-
     border: 1px solid #000;
     border-radius: 50%;
-
     background: #fff;
   }
 
@@ -137,13 +97,10 @@ const settings = await sanityClient.fetch(`
     position: absolute;
     top: 8px;
     left: 6px;
-
     width: 7px;
     height: 7px;
-
     border-radius: 50%;
     background: #000;
-
     transform: translate(0, 0);
   }
 
@@ -170,15 +127,42 @@ const settings = await sanityClient.fetch(`
       left: 5px;
       width: 6px;
       height: 6px;
+      transform: translate(0, 0) !important;
+    }
+
+    .eye {
+      transform-origin: center;
+      transition: transform 90ms ease;
+    }
+
+    :global(html.eyes-blink) .eye {
+      transform: scaleY(0.12);
     }
   }
 </style>
 
 <script>
-  // Eyes follow cursor
+  // Eyes follow the pointer on desktop only.
+  // Touch/mobile devices keep the pupils centred.
   const eyes = document.querySelectorAll('.eye')
+  const mobileEyes = window.matchMedia(
+    '(max-width: 700px), (hover: none), (pointer: coarse)'
+  )
+
+  const centreEyes = () => {
+    eyes.forEach((eye) => {
+      const pupil = eye.querySelector('.pupil')
+      if (!(pupil instanceof HTMLElement)) return
+      pupil.style.transform = 'translate(0, 0)'
+    })
+  }
 
   window.addEventListener('pointermove', (event) => {
+    if (mobileEyes.matches) {
+      centreEyes()
+      return
+    }
+
     eyes.forEach((eye) => {
       const pupil = eye.querySelector('.pupil')
       if (!(pupil instanceof HTMLElement)) return
@@ -186,19 +170,68 @@ const settings = await sanityClient.fetch(`
       const rect = eye.getBoundingClientRect()
       const eyeX = rect.left + rect.width / 2
       const eyeY = rect.top + rect.height / 2
-
-      const angle = Math.atan2(
-        event.clientY - eyeY,
-        event.clientX - eyeX
-      )
-
+      const angle = Math.atan2(event.clientY - eyeY, event.clientX - eyeX)
       const distance = 3.5
 
-      const x = Math.cos(angle) * distance
-      const y = Math.sin(angle) * distance
-
-      pupil.style.transform = `translate(${x}px, ${y}px)`
+      pupil.style.transform = `translate(${Math.cos(angle) * distance}px, ${Math.sin(angle) * distance}px)`
     })
+  })
+
+  mobileEyes.addEventListener?.('change', () => {
+    if (mobileEyes.matches) centreEyes()
+  })
+
+  if (mobileEyes.matches) centreEyes()
+
+  // On mobile, blink occasionally while the site's scroll panels move.
+  // The page itself does not scroll; Home, Info and Playground scroll independently.
+  let blinkCooldown = false
+  let blinkTimeout = null
+
+  const triggerMobileBlink = () => {
+    if (!mobileEyes.matches || blinkCooldown) return
+
+    blinkCooldown = true
+    document.documentElement.classList.add('eyes-blink')
+
+    window.setTimeout(() => {
+      document.documentElement.classList.remove('eyes-blink')
+    }, 130)
+
+    // Slightly random delay keeps it from feeling mechanical.
+    blinkTimeout = window.setTimeout(() => {
+      blinkCooldown = false
+      blinkTimeout = null
+    }, 500 + Math.random() * 450)
+  }
+
+  const scrollTargets = [
+    ...document.querySelectorAll('[data-scroll-panel]'),
+    ...document.querySelectorAll('.info-view'),
+    ...document.querySelectorAll('[data-view="home"]'),
+    ...document.querySelectorAll('[data-view="playground"]'),
+  ]
+
+  // Remove duplicates, then listen to the elements that actually scroll.
+  ;[...new Set(scrollTargets)].forEach((target) => {
+    target.addEventListener('scroll', triggerMobileBlink, {passive: true})
+  })
+
+  // Fallback for any browser/layout where the document itself becomes scrollable.
+  window.addEventListener('scroll', triggerMobileBlink, {passive: true})
+
+  mobileEyes.addEventListener?.('change', () => {
+    if (!mobileEyes.matches) {
+      document.documentElement.classList.remove('eyes-blink')
+      blinkCooldown = false
+
+      if (blinkTimeout) {
+        window.clearTimeout(blinkTimeout)
+        blinkTimeout = null
+      }
+    } else {
+      centreEyes()
+    }
   })
 
   // Contact copies email
@@ -212,7 +245,6 @@ const settings = await sanityClient.fetch(`
 
     try {
       await navigator.clipboard.writeText(email)
-
       const originalText = contactButton.textContent
       contactButton.textContent = 'Copied'
 
@@ -240,10 +272,8 @@ const settings = await sanityClient.fetch(`
   viewTriggers.forEach((trigger) => {
     trigger.addEventListener('click', () => {
       if (!(trigger instanceof HTMLElement)) return
-
       const view = trigger.dataset.viewTrigger
       if (!view) return
-
       showView(view)
     })
   })
@@ -264,21 +294,15 @@ const settings = await sanityClient.fetch(`
   const backToTop = document.querySelector('.back-to-top')
 
   backToTop?.addEventListener('click', () => {
-    let selector = '[data-view="home"]'
+    let selector = '[data-scroll-panel="home"]'
 
     if (document.documentElement.classList.contains('view-playground')) {
-      selector = '[data-view="playground"]'
+      selector = '[data-scroll-panel="playground"]'
     } else if (document.documentElement.classList.contains('view-info')) {
-      selector = '[data-view="info"]'
+      selector = '.info-view'
     }
 
     const panel = document.querySelector(selector)
-
-    if (panel instanceof HTMLElement) {
-      panel.scrollTo({
-        top: 0,
-        behavior: 'smooth',
-      })
-    }
+    panel?.scrollTo({ top: 0, behavior: 'smooth' })
   })
 </script>

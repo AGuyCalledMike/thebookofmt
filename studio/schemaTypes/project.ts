@@ -70,7 +70,7 @@ export const projectType = defineType({
                   {title: 'Image', value: 'image'},
                   {title: 'Video', value: 'video'},
                   {title: 'Slideshow', value: 'slideshow'},
-                  {title: 'Gallery of 4', value: 'gallery'},
+                  {title: '4-image gallery', value: 'gallery'},
                 ],
               },
               initialValue: 'image',
@@ -142,9 +142,22 @@ export const projectType = defineType({
                       type: 'string',
                     }),
                   ],
+                  preview: {
+                    select: {
+                      title: 'asset.originalFilename',
+                      media: 'asset',
+                    },
+                    prepare({title, media}) {
+                      return {
+                        title: title || 'Image',
+                        media,
+                      }
+                    },
+                  },
                 },
               ],
             }),
+
 
             defineField({
               name: 'galleryImages',
@@ -161,7 +174,7 @@ export const projectType = defineType({
                   }
 
                   if (!Array.isArray(images) || images.length !== 4) {
-                    return 'A gallery must contain exactly four images.'
+                    return 'Add exactly four images.'
                   }
 
                   return true
@@ -181,6 +194,18 @@ export const projectType = defineType({
                       type: 'string',
                     }),
                   ],
+                  preview: {
+                    select: {
+                      title: 'asset.originalFilename',
+                      media: 'asset',
+                    },
+                    prepare({title, media}) {
+                      return {
+                        title: title || 'Image',
+                        media,
+                      }
+                    },
+                  },
                 },
               ],
             }),
@@ -217,7 +242,7 @@ export const projectType = defineType({
               firstSlide: 'slides.0',
               slideCount: 'slides',
               firstGalleryImage: 'galleryImages.0',
-              galleryImages: 'galleryImages',
+              galleryCount: 'galleryImages',
             },
 
             prepare({
@@ -228,7 +253,7 @@ export const projectType = defineType({
               firstSlide,
               slideCount,
               firstGalleryImage,
-              galleryImages,
+              galleryCount,
             }) {
               const typeLabel =
                 mediaType === 'video'
@@ -236,7 +261,7 @@ export const projectType = defineType({
                   : mediaType === 'slideshow'
                     ? 'SLIDESHOW'
                     : mediaType === 'gallery'
-                      ? 'GALLERY · 4'
+                      ? '4-IMAGE GALLERY'
                       : 'IMAGE'
 
               const widthLabel = width === 'half' ? 'HALF' : 'FULL'
@@ -244,8 +269,8 @@ export const projectType = defineType({
               const subtitle =
                 mediaType === 'slideshow' && Array.isArray(slideCount)
                   ? `${slideCount.length} slide${slideCount.length === 1 ? '' : 's'}`
-                  : mediaType === 'gallery' && Array.isArray(galleryImages)
-                    ? `${galleryImages.length} / 4 images`
+                  : mediaType === 'gallery' && Array.isArray(galleryCount)
+                    ? `${galleryCount.length} image${galleryCount.length === 1 ? '' : 's'}`
                     : undefined
 
               return {

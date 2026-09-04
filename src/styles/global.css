@@ -1,0 +1,313 @@
+@font-face {
+  font-family: 'Aeonik Fono';
+  src: url('/fonts/AeonikFono-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Aeonik Fono';
+  src: url('/fonts/AeonikFono-Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Cooper';
+  src: url('/fonts/Cooper_Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* Type */
+  --font-mono: 'Aeonik Fono', monospace;
+  --font-display: 'Cooper', serif;
+
+  /* Colour */
+  --black: #000;
+  --near-black: #111;
+  --cream: #f3efe6;
+  --white: #fff;
+
+  /* Projects */
+  --project-gutter: 60px;
+  --project-gutter-mobile: 20px;
+
+  /*
+    Distance from nav/top of panel to FIRST project only.
+  */
+  --project-first-top-space: 340px;
+  --project-first-top-space-mobile: 125px;
+
+  /*
+    These are overridden per project below.
+    Do not edit these two.
+  */
+  --project-top-space: 0px;
+  --project-top-space-mobile: 0px;
+
+  /*
+    Distance after each project.
+    This now controls project-to-project spacing properly.
+  */
+  --project-bottom-space: 120px;
+  --project-bottom-space-mobile: 80px;
+
+  --project-media-gap: 12px;
+
+/* Project headlines */
+--project-headline-size: 40px;
+--project-headline-size-mobile: 28px;
+--project-headline-line-height: 0.95;
+--project-headline-letter-spacing: -0.03em;
+--project-headline-bottom-space: 14px;
+
+/* Project supporting type */
+--project-tag-size: 8px;
+--project-tag-size-mobile: 11px;
+
+--project-body-size: 14px;
+--project-body-size-mobile: 16px;
+
+--project-body-line-height: 1.45;
+
+/* Project metadata */
+--project-meta-size: 11px;
+--project-meta-size-mobile: 10px;
+--project-meta-line-height: 1.35;
+--project-meta-color: #8a8a8a;
+--project-meta-top-space: 20px;
+
+  /* Playground */
+  --playground-gutter: 40px;
+  --playground-gutter-mobile: 4px;
+
+  --playground-top-space: 340px;
+  --playground-top-space-mobile: 140px;
+
+  --playground-gap: 8px;
+  --playground-gap-mobile: 4px;
+
+  /* Footer */
+  --footer-gutter: 60px;
+  --footer-gutter-mobile: 20px;
+
+  --footer-top-space: 120px;
+  --footer-top-space-mobile: 80px;
+
+  --footer-bottom-space: 32px;
+  --footer-bottom-space-mobile: 24px;
+
+  /* Motion */
+  --panel-ease: cubic-bezier(0.76, 0, 0.24, 1);
+  --reveal-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --panel-transition: 650ms var(--panel-ease);
+  --content-transition: 700ms var(--panel-ease);
+
+  --reveal-distance: 72px;
+  --reveal-opacity-duration: 1200ms;
+  --reveal-duration: 1400ms;
+}
+
+
+/* --------------------------------------------------
+   BASE
+-------------------------------------------------- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: var(--black);
+  color: var(--white);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-mono);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  color: inherit;
+}
+
+img,
+video {
+  max-width: 100%;
+}
+
+
+/* --------------------------------------------------
+   SITE PANELS
+-------------------------------------------------- */
+
+.site-viewport {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.site-track {
+  display: flex;
+  width: 300vw;
+  height: 100%;
+
+  transform: translateX(-100vw);
+
+  transition:
+    transform var(--panel-transition);
+
+  will-change: transform;
+}
+
+.site-panel {
+  flex: 0 0 100vw;
+
+  width: 100vw;
+  height: 100%;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  -webkit-overflow-scrolling: touch;
+}
+
+.info-view {
+  background: var(--cream);
+  color: var(--near-black);
+}
+
+.projects-view {
+  background: var(--black);
+  color: var(--white);
+}
+
+.playground-view {
+  background: var(--near-black);
+  color: var(--white);
+}
+
+
+/* --------------------------------------------------
+   PANEL POSITIONS
+-------------------------------------------------- */
+
+html.view-info .site-track {
+  transform: translateX(0);
+}
+
+html.view-home .site-track {
+  transform: translateX(-100vw);
+}
+
+html.view-playground .site-track {
+  transform: translateX(-200vw);
+}
+
+
+/* --------------------------------------------------
+   PROJECT SPACING
+
+   The existing project CSS still uses:
+
+   padding:
+     var(--project-top-space)
+     var(--project-gutter)
+     var(--project-bottom-space);
+
+   We change the variable per project here.
+-------------------------------------------------- */
+
+.project {
+  --project-top-space: 0px;
+  --project-top-space-mobile: 0px;
+}
+
+.project:first-child {
+  --project-top-space: var(--project-first-top-space);
+  --project-top-space-mobile: var(--project-first-top-space-mobile);
+}
+
+
+/* --------------------------------------------------
+   PANEL CONTENT ARRIVAL
+-------------------------------------------------- */
+
+.site-panel > * {
+  opacity: 0.42;
+  transform: translateY(22px);
+
+  transition:
+    opacity 460ms ease,
+    transform var(--content-transition);
+
+  will-change: opacity, transform;
+}
+
+html.view-info .info-view > *,
+html.view-home .projects-view > *,
+html.view-playground .playground-view > * {
+  opacity: 1;
+  transform: translateY(0);
+
+  transition-delay: 90ms;
+}
+
+
+/* --------------------------------------------------
+   MOBILE
+-------------------------------------------------- */
+
+@media (max-width: 700px) {
+  .site-panel > * {
+    transform: translateY(14px);
+
+    transition:
+      opacity 380ms ease,
+      transform 560ms var(--panel-ease);
+  }
+}
+
+
+/* --------------------------------------------------
+   REDUCED MOTION
+-------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .site-track,
+  .site-panel > * {
+    transition: none;
+  }
+
+  .site-panel > * {
+    opacity: 1;
+    transform: none;
+  }
+}
