@@ -97,9 +97,29 @@ const projects = await sanityClient.fetch(`
     projectName,
     role,
     agency,
-    description,
+    description[] {
+      ...,
+      markDefs[] {
+        ...,
+        project-> {
+          _id,
+          title,
+          "slug": slug.current
+        }
+      }
+    },
     enableReadMore,
-    longDescription
+    longDescription[] {
+      ...,
+      markDefs[] {
+        ...,
+        project-> {
+          _id,
+          title,
+          "slug": slug.current
+        }
+      }
+    }
   }
 `)
 ---
@@ -490,7 +510,30 @@ const projects = await sanityClient.fetch(`
                 {project.description?.map((block) =>
                   block._type === 'block' ? (
                     <p>
-                      {block.children?.map((child) => child.text).join('')}
+                      {block.children?.map((child) => {
+                        const link = block.markDefs?.find(
+                          (mark) =>
+                            mark._type === 'link' &&
+                            child.marks?.includes(mark._key)
+                        )
+
+                        if (link?.project?.slug) {
+                          return (
+                            <a
+                              href={`#project-${link.project.slug}`}
+                              data-project-link={link.project.slug}
+                            >
+                              {child.text}
+                            </a>
+                          )
+                        }
+
+                        return link?.href ? (
+                          <a href={link.href}>{child.text}</a>
+                        ) : (
+                          child.text
+                        )
+                      })}
                     </p>
                   ) : null
                 )}
@@ -507,7 +550,30 @@ const projects = await sanityClient.fetch(`
                       {project.longDescription.map((block) =>
                         block._type === 'block' ? (
                           <p>
-                            {block.children?.map((child) => child.text).join('')}
+                            {block.children?.map((child) => {
+                              const link = block.markDefs?.find(
+                                (mark) =>
+                                  mark._type === 'link' &&
+                                  child.marks?.includes(mark._key)
+                              )
+
+                              if (link?.project?.slug) {
+                                return (
+                                  <a
+                                    href={`#project-${link.project.slug}`}
+                                    data-project-link={link.project.slug}
+                                  >
+                                    {child.text}
+                                  </a>
+                                )
+                              }
+
+                              return link?.href ? (
+                                <a href={link.href}>{child.text}</a>
+                              ) : (
+                                child.text
+                              )
+                            })}
                           </p>
                         ) : null
                       )}
@@ -539,7 +605,8 @@ const projects = await sanityClient.fetch(`
   }
 
 h2 {
-  width: min(1180px, 92%);
+  width: 760px;
+  max-width: 90%;
   margin: 0 auto var(--project-headline-bottom-space);
 
   font-family: var(--font-display);
@@ -549,7 +616,7 @@ h2 {
   letter-spacing: var(--project-headline-letter-spacing);
 
   text-align: center;
-  text-wrap: balance;
+  white-space: pre-line;
 }
 
   .tags {
@@ -784,13 +851,24 @@ line-height: var(--project-body-line-height);
     color: #888;
   }
 
-  .description p {
-    margin: 0 0 18px;
-  }
+.description p {
+  margin: 0 0 18px;
+  text-indent: 2em;
+}
 
-  .description-version p:first-child {
-    text-indent: 2em;
-  }
+.description a,
+.description a:visited {
+  color: #00ff1a;
+  text-decoration: none;
+}
+
+.description a:hover,
+.description a:focus-visible {
+  color: #00ff1a;
+  text-decoration: none;
+}
+
+
 
   .read-more {
     margin: 12px 0 0;
@@ -947,11 +1025,13 @@ line-height: var(--project-body-line-height);
 
 h2 {
       width: 100%;
-      margin-bottom: var(--project-headline-bottom-space);
+      max-width: 100%;
+      margin: 0 auto var(--project-headline-bottom-space);
       font-size: var(--project-headline-size-mobile);
       line-height: var(--project-headline-line-height);
       letter-spacing: var(--project-headline-letter-spacing);
-      text-wrap: balance;
+      text-align: center;
+      white-space: pre-line;
     }
 
     .tags {
@@ -1050,11 +1130,11 @@ h2 {
       display: none;
     }
 
-    .description {
-      margin-top: 42px;
-      font-size: var(--project-body-size-mobile);
-      line-height: var(--project-body-line-height);
-    }
+ .description {
+  margin-top: 42px;
+  font-size: var(--project-body-size-mobile);
+  line-height: var(--project-body-line-height-mobile);
+}
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -1063,6 +1143,8 @@ h2 {
       transform: none;
       transition: none;
     }
+
+    
 
     .slideshow-track {
       transition: none;
@@ -1350,12 +1432,13 @@ h2 {
 
     if (projectsPanel instanceof Element) {
       const revealObserver = new IntersectionObserver(
-        (entries, observer) => {
+        (entries) => {
           entries.forEach((entry) => {
-            if (!entry.isIntersecting) return
-
-            entry.target.classList.add('is-revealed')
-            observer.unobserve(entry.target)
+            if (entry.isIntersecting) {
+              entry.target.classList.add('is-revealed')
+            } else {
+              entry.target.classList.remove('is-revealed')
+            }
           })
         },
         {
@@ -1365,7 +1448,7 @@ h2 {
         }
       )
 
-      revealProjects.slice(1).forEach((project) => revealObserver.observe(project))
+      revealProjects.forEach((project) => revealObserver.observe(project))
     }
   }
 
@@ -1474,6 +1557,41 @@ h2 {
       applyProjectFilter()
     }
   }
+
+  // Internal links from description copy to another project.
+  // If a tag filter is active, clear it first so the target project is visible.
+  document.querySelectorAll('[data-project-link]').forEach((link) => {
+    if (!(link instanceof HTMLAnchorElement)) return
+
+    link.addEventListener('click', (event) => {
+      const slug = link.dataset.projectLink
+      if (!slug) return
+
+      const target = document.getElementById(`project-${slug}`)
+      if (!(target instanceof HTMLElement)) return
+
+      event.preventDefault()
+
+      const scrollToProject = () => {
+        target.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        })
+
+        const url = new URL(window.location.href)
+        url.hash = `project-${slug}`
+        window.history.replaceState({}, '', url)
+      }
+
+      if (activeTag) {
+        activeTag = null
+        applyProjectFilter()
+        window.setTimeout(scrollToProject, 220)
+      } else {
+        scrollToProject()
+      }
+    })
+  })
 
   // Read more / read less
   const descriptions = document.querySelectorAll('[data-project-description]')

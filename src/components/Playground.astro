@@ -81,7 +81,7 @@ const videos = playground?.videos?.filter((item) => !item.hidden) ?? []
       <div class="playground-masonry playground-videos">
         {videos.map((item) => (
           <figure class="playground-item">
-            <video autoplay muted loop playsinline preload="metadata">
+            <video class="image-reveal" autoplay muted loop playsinline preload="metadata">
               <source src={item.asset?.url} />
             </video>
           </figure>
@@ -177,36 +177,42 @@ const videos = playground?.videos?.filter((item) => !item.hidden) ?? []
 </style>
 
 <script>
-  // Fade/slide images in once they are both loaded and in view.
-  const revealImages = document.querySelectorAll('img.image-reveal')
+  // Fade/slide Playground media in whenever it enters the panel,
+  // then reset it once it leaves so the reveal can play again.
+  const revealMedia = document.querySelectorAll('.image-reveal')
+  const playgroundPanel = document.querySelector('.playground-view')
 
-  const revealObserver = new IntersectionObserver(
-    (entries, observer) => {
-      entries.forEach((entry) => {
-        if (!entry.isIntersecting) return
+  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const revealObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const media = entry.target
 
-        const image = entry.target
+          if (!entry.isIntersecting) {
+            media.classList.remove('is-visible')
+            return
+          }
 
-        const reveal = () => {
-          requestAnimationFrame(() => {
-            image.classList.add('is-visible')
-          })
-        }
+          const reveal = () => {
+            requestAnimationFrame(() => {
+              media.classList.add('is-visible')
+            })
+          }
 
-        if (image.complete) {
-          reveal()
-        } else {
-          image.addEventListener('load', reveal, {once: true})
-        }
+          if (media instanceof HTMLImageElement && !media.complete) {
+            media.addEventListener('load', reveal, {once: true})
+          } else {
+            reveal()
+          }
+        })
+      },
+      {
+        root: playgroundPanel instanceof Element ? playgroundPanel : null,
+        rootMargin: '0px 0px 8% 0px',
+        threshold: 0.04,
+      }
+    )
 
-        observer.unobserve(image)
-      })
-    },
-    {
-      rootMargin: '0px 0px 8% 0px',
-      threshold: 0.04,
-    }
-  )
-
-  revealImages.forEach((image) => revealObserver.observe(image))
+    revealMedia.forEach((media) => revealObserver.observe(media))
+  }
 </script>

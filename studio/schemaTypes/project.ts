@@ -1,5 +1,7 @@
 import {defineField, defineType} from 'sanity'
 import {orderRankField} from '@sanity/orderable-document-list'
+import GalleryImagePickerInput from '../components/GalleryImagePickerInput'
+import SlideshowImagePickerInput from '../components/SlideshowImagePickerInput'
 
 export const projectType = defineType({
   name: 'project',
@@ -20,13 +22,14 @@ export const projectType = defineType({
       validation: (Rule) => Rule.required(),
     }),
 
-    defineField({
-      name: 'headline',
-      title: 'Project headline',
-      description: 'The headline shown on the website.',
-      type: 'string',
-      validation: (Rule) => Rule.required(),
-    }),
+defineField({
+  name: 'headline',
+  title: 'Project headline',
+  description: 'The headline shown on the website. Add a line break where you want it to wrap.',
+  type: 'text',
+  rows: 2,
+  validation: (Rule) => Rule.required(),
+}),
 
     defineField({
       name: 'slug',
@@ -111,8 +114,12 @@ export const projectType = defineType({
             defineField({
               name: 'slides',
               title: 'Slides',
+              description: 'Select two or more images from the image library.',
               type: 'array',
               hidden: ({parent}) => parent?.mediaType !== 'slideshow',
+              components: {
+                input: SlideshowImagePickerInput,
+              },
               validation: (Rule) =>
                 Rule.custom((slides, context) => {
                   const parent = context.parent as {mediaType?: string} | undefined
@@ -162,9 +169,12 @@ export const projectType = defineType({
             defineField({
               name: 'galleryImages',
               title: 'Gallery images',
-              description: 'Upload exactly four images. They render as a 2 × 2 gallery on desktop.',
+              description: 'Select exactly four images from the Media Library.',
               type: 'array',
               hidden: ({parent}) => parent?.mediaType !== 'gallery',
+              components: {
+                input: GalleryImagePickerInput,
+              },
               validation: (Rule) =>
                 Rule.custom((images, context) => {
                   const parent = context.parent as {mediaType?: string} | undefined
@@ -318,7 +328,49 @@ export const projectType = defineType({
       name: 'description',
       title: 'Description',
       type: 'array',
-      of: [{type: 'block'}],
+      of: [
+        {
+          type: 'block',
+          marks: {
+            annotations: [
+              {
+                name: 'link',
+                type: 'object',
+                title: 'Link',
+                fields: [
+                  {
+                    name: 'linkType',
+                    title: 'Link to',
+                    type: 'string',
+                    initialValue: 'url',
+                    options: {
+                      list: [
+                        {title: 'URL', value: 'url'},
+                        {title: 'Project', value: 'project'},
+                      ],
+                    },
+                  },
+                  {
+                    name: 'href',
+                    title: 'URL',
+                    type: 'url',
+                    hidden: ({parent}: {parent?: {linkType?: string}}) =>
+                      parent?.linkType === 'project',
+                  },
+                  {
+                    name: 'project',
+                    title: 'Project',
+                    type: 'reference',
+                    to: [{type: 'project'}],
+                    hidden: ({parent}: {parent?: {linkType?: string}}) =>
+                      parent?.linkType !== 'project',
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      ],
     }),
 
     defineField({
@@ -333,7 +385,49 @@ export const projectType = defineType({
       title: 'Long description',
       type: 'array',
       hidden: ({document}) => document?.enableReadMore !== true,
-      of: [{type: 'block'}],
+      of: [
+        {
+          type: 'block',
+          marks: {
+            annotations: [
+              {
+                name: 'link',
+                type: 'object',
+                title: 'Link',
+                fields: [
+                  {
+                    name: 'linkType',
+                    title: 'Link to',
+                    type: 'string',
+                    initialValue: 'url',
+                    options: {
+                      list: [
+                        {title: 'URL', value: 'url'},
+                        {title: 'Project', value: 'project'},
+                      ],
+                    },
+                  },
+                  {
+                    name: 'href',
+                    title: 'URL',
+                    type: 'url',
+                    hidden: ({parent}: {parent?: {linkType?: string}}) =>
+                      parent?.linkType === 'project',
+                  },
+                  {
+                    name: 'project',
+                    title: 'Project',
+                    type: 'reference',
+                    to: [{type: 'project'}],
+                    hidden: ({parent}: {parent?: {linkType?: string}}) =>
+                      parent?.linkType !== 'project',
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      ],
     }),
 
     // Kept hidden temporarily so existing projects with the old numeric
