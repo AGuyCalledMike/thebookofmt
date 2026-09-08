@@ -101,6 +101,21 @@ defineField({
             }),
 
             defineField({
+  name: 'videoMode',
+  title: 'Video behaviour',
+  type: 'string',
+  options: {
+    layout: 'radio',
+    list: [
+      {title: 'Film — play with controls', value: 'film'},
+      {title: 'Loop — autoplay, muted, no controls', value: 'loop'},
+    ],
+  },
+  initialValue: 'film',
+  hidden: ({parent}) => parent?.mediaType !== 'video',
+}),
+
+            defineField({
               name: 'poster',
               title: 'Poster image',
               description: 'Optional thumbnail shown before the video plays.',

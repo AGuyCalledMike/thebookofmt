@@ -28,6 +28,7 @@ const projects = await sanityClient.fetch(`
     media[] {
       _key,
       mediaType,
+      videoMode,
       width,
       alt,
 
@@ -214,68 +215,88 @@ const projects = await sanityClient.fetch(`
                 >
                   {
                     item.mediaType === 'video' && item.video?.asset?.url ? (
-                      <div class="custom-video-player" data-video-player>
-                        <video
-                          loop
-                          playsinline
-                          preload="none"
-                          poster={sanityImage(item.poster?.asset?.url, 1600)}
-                          data-video
+                      item.videoMode === 'loop' ? (
+                        <div
+                          class="custom-video-player loop-video"
+                          data-video-player
+                          data-video-loop
                         >
-                          <source data-src={item.video.asset.url} />
-                        </video>
+                          <video
+                            autoplay
+                            muted
+                            loop
+                            playsinline
+                            preload="none"
+                            poster={sanityImage(item.poster?.asset?.url, 1600)}
+                            data-video
+                          >
+                            <source data-src={item.video.asset.url} />
+                          </video>
+                        </div>
+                      ) : (
+                        <div class="custom-video-player" data-video-player>
+                          <video
+                            loop
+                            playsinline
+                            preload="none"
+                            poster={sanityImage(item.poster?.asset?.url, 1600)}
+                            data-video
+                          >
+                            <source data-src={item.video.asset.url} />
+                          </video>
 
-                        <button
-                          class="video-play-large"
-                          type="button"
-                          data-video-play-large
-                          aria-label="Play video"
-                        >
-                          <span aria-hidden="true"></span>
-                        </button>
-
-                        <div class="video-controls" data-video-controls>
                           <button
-                            class="video-control-button"
+                            class="video-play-large"
                             type="button"
-                            data-video-play
+                            data-video-play-large
                             aria-label="Play video"
                           >
-                            <span data-video-play-icon aria-hidden="true">▶</span>
+                            <span aria-hidden="true"></span>
                           </button>
 
-                          <input
-                            class="video-progress"
-                            type="range"
-                            min="0"
-                            max="1000"
-                            value="0"
-                            step="1"
-                            data-video-progress
-                            aria-label="Video progress"
-                          />
+                          <div class="video-controls" data-video-controls>
+                            <button
+                              class="video-control-button"
+                              type="button"
+                              data-video-play
+                              aria-label="Play video"
+                            >
+                              <span data-video-play-icon aria-hidden="true">▶</span>
+                            </button>
 
-                          <span class="video-time" data-video-time>0:00</span>
+                            <input
+                              class="video-progress"
+                              type="range"
+                              min="0"
+                              max="1000"
+                              value="0"
+                              step="1"
+                              data-video-progress
+                              aria-label="Video progress"
+                            />
 
-                          <button
-                            class="video-control-button"
-                            type="button"
-                            data-video-mute
-                            aria-label="Mute video"
-                          >
-                            <span data-video-mute-icon aria-hidden="true">S</span>
-                          </button>
+                            <span class="video-time" data-video-time>0:00</span>
 
-                          <button
-                            class="video-control-button"
-                            type="button"
-                            data-video-fullscreen
-                            aria-label="Enter fullscreen"
-                          >
-                            <span aria-hidden="true">⛶</span>
-                          </button>
+                            <button
+                              class="video-control-button"
+                              type="button"
+                              data-video-mute
+                              aria-label="Mute video"
+                            >
+                              <span data-video-mute-icon aria-hidden="true">S</span>
+                            </button>
+
+                            <button
+                              class="video-control-button"
+                              type="button"
+                              data-video-fullscreen
+                              aria-label="Enter fullscreen"
+                            >
+                              <span aria-hidden="true">⛶</span>
+                            </button>
+                          </div>
                         </div>
-                      </div>
+                      )
                     ) : item.mediaType === 'gallery' && item.galleryImages?.length ? (
                       <div class="project-gallery">
                         {item.galleryImages.map((image) => (
@@ -361,68 +382,90 @@ const projects = await sanityClient.fetch(`
                 if (item.mediaType === 'video' && item.video?.asset?.url) {
                   return (
                     <div class="mobile-media-item">
-                      <div class="custom-video-player" data-video-player>
-                          <video
+                      {
+                        item.videoMode === 'loop' ? (
+                          <div
+                            class="custom-video-player loop-video"
+                            data-video-player
+                            data-video-loop
+                          >
+                            <video
+                              autoplay
+                              muted
                               loop
-                            playsinline
-                            preload="none"
-                            poster={sanityImage(item.poster?.asset?.url, 1600)}
-                            data-video
-                          >
-                            <source data-src={item.video.asset.url} />
-                          </video>
+                              playsinline
+                              preload="none"
+                              poster={sanityImage(item.poster?.asset?.url, 1600)}
+                              data-video
+                            >
+                              <source data-src={item.video.asset.url} />
+                            </video>
+                          </div>
+                        ) : (
+                          <div class="custom-video-player" data-video-player>
+                            <video
+                              loop
+                              playsinline
+                              preload="none"
+                              poster={sanityImage(item.poster?.asset?.url, 1600)}
+                              data-video
+                            >
+                              <source data-src={item.video.asset.url} />
+                            </video>
 
-                          <button
-                            class="video-play-large"
-                            type="button"
-                            data-video-play-large
-                            aria-label="Play video"
-                          >
-                            <span aria-hidden="true"></span>
-                          </button>
-
-                          <div class="video-controls" data-video-controls>
                             <button
-                              class="video-control-button"
+                              class="video-play-large"
                               type="button"
-                              data-video-play
+                              data-video-play-large
                               aria-label="Play video"
                             >
-                              <span data-video-play-icon aria-hidden="true">▶</span>
+                              <span aria-hidden="true"></span>
                             </button>
 
-                            <input
-                              class="video-progress"
-                              type="range"
-                              min="0"
-                              max="1000"
-                              value="0"
-                              step="1"
-                              data-video-progress
-                              aria-label="Video progress"
-                            />
+                            <div class="video-controls" data-video-controls>
+                              <button
+                                class="video-control-button"
+                                type="button"
+                                data-video-play
+                                aria-label="Play video"
+                              >
+                                <span data-video-play-icon aria-hidden="true">▶</span>
+                              </button>
 
-                            <span class="video-time" data-video-time>0:00</span>
+                              <input
+                                class="video-progress"
+                                type="range"
+                                min="0"
+                                max="1000"
+                                value="0"
+                                step="1"
+                                data-video-progress
+                                aria-label="Video progress"
+                              />
 
-                            <button
-                              class="video-control-button"
-                              type="button"
-                              data-video-mute
-                              aria-label="Mute video"
-                            >
-                              <span data-video-mute-icon aria-hidden="true">S</span>
-                            </button>
+                              <span class="video-time" data-video-time>0:00</span>
 
-                            <button
-                              class="video-control-button"
-                              type="button"
-                              data-video-fullscreen
-                              aria-label="Enter fullscreen"
-                            >
-                              <span aria-hidden="true">⛶</span>
-                            </button>
+                              <button
+                                class="video-control-button"
+                                type="button"
+                                data-video-mute
+                                aria-label="Mute video"
+                              >
+                                <span data-video-mute-icon aria-hidden="true">S</span>
+                              </button>
+
+                              <button
+                                class="video-control-button"
+                                type="button"
+                                data-video-fullscreen
+                                aria-label="Enter fullscreen"
+                              >
+                                <span aria-hidden="true">⛶</span>
+                              </button>
+                            </div>
                           </div>
-                        </div>
+                        )
+                      }
                     </div>
                   )
                 }
@@ -844,7 +887,7 @@ h2 {
   }
 
   .description {
-    width: min(640px, 100%);
+    width: min(720px, 100%);
     margin: 58px auto 0;
    font-size: var(--project-body-size);
 line-height: var(--project-body-line-height);
@@ -898,6 +941,10 @@ line-height: var(--project-body-line-height);
     display: block;
     width: 100%;
     height: auto;
+  }
+
+  .loop-video video {
+    pointer-events: none;
   }
 
   .video-play-large {
@@ -1119,38 +1166,22 @@ h2 {
     }
 
 .meta {
-  display: flex;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
   margin-top: var(--project-meta-top-space);
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scroll-snap-type: x proximity;
-
   font-size: var(--project-meta-size-mobile);
   line-height: var(--project-meta-line-height);
-
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
 }
 
-.meta::-webkit-scrollbar {
-  display: none;
-}
+    .secondary-meta {
+      display: none;
+    }
 
-.meta > * {
-  flex: 0 0 calc(50% - 8px);
-  scroll-snap-align: start;
-}
-
-.secondary-meta {
-  display: block;
-}
-
- .description {
-  margin-top: 42px;
-  font-size: var(--project-body-size-mobile);
-  line-height: var(--project-body-line-height-mobile);
-}
+    .description {
+      margin-top: 42px;
+      font-size: var(--project-body-size-mobile);
+      line-height: var(--project-body-line-height);
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -1159,8 +1190,6 @@ h2 {
       transform: none;
       transition: none;
     }
-
-    
 
     .slideshow-track {
       transition: none;
@@ -1180,10 +1209,34 @@ h2 {
     const source = video.querySelector('source[data-src]')
     if (!(source instanceof HTMLSourceElement)) return
 
+    const isLoopVideo = Boolean(video.closest('[data-video-loop]'))
+
+    if (isLoopVideo) {
+      video.defaultMuted = true
+      video.muted = true
+      video.autoplay = true
+      video.loop = true
+      video.playsInline = true
+    }
+
     source.src = source.dataset.src || ''
     source.removeAttribute('data-src')
     video.dataset.sourceLoaded = 'true'
     video.load()
+
+    if (isLoopVideo) {
+      const playLoop = () => {
+        video.play().catch(() => {
+          // Muted autoplay can still be blocked by browser/device settings.
+        })
+      }
+
+      if (video.readyState >= 2) {
+        playLoop()
+      } else {
+        video.addEventListener('canplay', playLoop, {once: true})
+      }
+    }
   }
 
   const videoProjectsPanel = document.querySelector('.projects-view')
