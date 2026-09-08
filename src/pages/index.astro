@@ -844,7 +844,7 @@ h2 {
   }
 
   .description {
-    width: min(720px, 100%);
+    width: min(640px, 100%);
     margin: 58px auto 0;
    font-size: var(--project-body-size);
 line-height: var(--project-body-line-height);
@@ -1119,16 +1119,32 @@ h2 {
     }
 
 .meta {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  display: flex;
   gap: 16px;
   margin-top: var(--project-meta-top-space);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+
   font-size: var(--project-meta-size-mobile);
   line-height: var(--project-meta-line-height);
+
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
 
-    .secondary-meta {
-      display: none;
-    }
+.meta::-webkit-scrollbar {
+  display: none;
+}
+
+.meta > * {
+  flex: 0 0 calc(50% - 8px);
+  scroll-snap-align: start;
+}
+
+.secondary-meta {
+  display: block;
+}
 
  .description {
   margin-top: 42px;
