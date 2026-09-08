@@ -84,7 +84,7 @@
 --project-meta-top-space: 20px;
 
   /* Playground */
-  --playground-gutter: 40px;
+  --playground-gutter: 60px;
   --playground-gutter-mobile: 4px;
 
   --playground-top-space: 340px;
@@ -97,10 +97,10 @@
 --footer-gutter: 60px;
 --footer-gutter-mobile: 20px;
 
---footer-top-space: 28px;
+--footer-top-space: 0px;
 --footer-top-space-mobile: 20px;
 
---footer-bottom-space: 24px;
+--footer-bottom-space: 64px;
 --footer-bottom-space-mobile: 20px;
 
   /* Motion */
@@ -200,7 +200,7 @@ video {
   background: var(--cream);
   color: var(--near-black);
 }
-‡‡‡
+
 .projects-view {
   background: var(--black);
   color: var(--white);

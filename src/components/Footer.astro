@@ -9,14 +9,20 @@ const year = new Date().getFullYear()
     aria-label="Michael Thomason"
   ></div>
 
-  <div class="footer-meta">
-    <span>© {year} Michael Thomason</span>
+<div class="footer-meta">
+  <span>© {year} Michael Thomason</span>
 
-    <div class="footer-links">
-      <a href="mailto:hello@thebookofmt.com">Email</a>
-      <a href="https://www.linkedin.com/" target="_blank" rel="noreferrer">LinkedIn</a>
-    </div>
+  <img
+    class="footer-end"
+    src="/the-end.png"
+    alt="The End"
+  />
+
+  <div class="footer-links">
+    <a href="mailto:hello@thebookofmt.com">Email</a>
+    <a href="https://www.linkedin.com/" target="_blank" rel="noreferrer">LinkedIn</a>
   </div>
+</div>
 </footer>
 
 <style>
@@ -73,6 +79,19 @@ const year = new Date().getFullYear()
     text-decoration: underline;
     text-underline-offset: 3px;
   }
+
+  .footer-meta {
+  position: relative;
+}
+
+.footer-end {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 90px;
+  height: auto;
+  transform: translate(-50%, -50%);
+}
 
   @media (max-width: 700px) {
     .site-footer {
