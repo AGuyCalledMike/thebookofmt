@@ -1175,12 +1175,16 @@ h2 {
 
 .meta {
   display: flex;
+  width: 100%;
   gap: 16px;
   margin-top: var(--project-meta-top-space);
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scroll-snap-type: x proximity;
+
+  overflow-x: scroll;
+  overflow-y: hidden;
+
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  scroll-snap-type: x proximity;
   scrollbar-width: none;
 
   font-size: var(--project-meta-size-mobile);
@@ -1192,8 +1196,9 @@ h2 {
   display: none;
 }
 
-.meta > * {
+.meta > p {
   flex: 0 0 calc(50% - 8px);
+  min-width: 0;
   scroll-snap-align: start;
 }
 
