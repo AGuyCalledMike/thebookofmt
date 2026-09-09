@@ -221,17 +221,15 @@ const projects = await sanityClient.fetch(`
                           data-video-player
                           data-video-loop
                         >
-                          <video
-                            autoplay
-                            muted
-                            loop
-                            playsinline
-                            preload="auto"
-                            poster={sanityImage(item.poster?.asset?.url, 1600)}
-                            data-video
-                          >
-                            <source data-src={item.video.asset.url} />
-                          </video>
+                   <video
+  autoplay
+  muted
+  loop
+  playsinline
+  preload="auto"
+>
+  <source src={item.video.asset.url} />
+</video>
                         </div>
                       ) : (
                         <div class="custom-video-player" data-video-player>
