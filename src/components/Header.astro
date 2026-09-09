@@ -292,16 +292,21 @@ const settings = await sanityClient.fetch(`
   // Back to top applies to the currently visible panel
   const backToTop = document.querySelector('.back-to-top')
 
-  backToTop?.addEventListener('click', () => {
-    let selector = '[data-scroll-panel="home"]'
 
-    if (document.documentElement.classList.contains('view-playground')) {
-      selector = '[data-scroll-panel="playground"]'
-    } else if (document.documentElement.classList.contains('view-info')) {
-      selector = '.info-view'
-    }
+const backToTop = document.querySelector('.back-to-top')
 
-    const panel = document.querySelector(selector)
-    panel?.scrollTo({ top: 0, behavior: 'smooth' })
+backToTop?.addEventListener('click', () => {
+  let panel = document.querySelector('.projects-view')
+
+  if (document.documentElement.classList.contains('view-playground')) {
+    panel = document.querySelector('.playground-view')
+  } else if (document.documentElement.classList.contains('view-info')) {
+    panel = document.querySelector('.info-view')
+  }
+
+  panel?.scrollTo({
+    top: 0,
+    behavior: 'smooth',
   })
+})
 </script>

@@ -177,42 +177,39 @@ const videos = playground?.videos?.filter((item) => !item.hidden) ?? []
 </style>
 
 <script>
-  // Fade/slide Playground media in whenever it enters the panel,
-  // then reset it once it leaves so the reveal can play again.
-  const revealMedia = document.querySelectorAll('.image-reveal')
-  const playgroundPanel = document.querySelector('.playground-view')
+ const revealMedia = document.querySelectorAll('.image-reveal')
+const playgroundPanel = document.querySelector('.playground-view')
 
-  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    const revealObserver = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          const media = entry.target
+if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  const revealObserver = new IntersectionObserver(
+    (entries, observer) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return
 
-          if (!entry.isIntersecting) {
-            media.classList.remove('is-visible')
-            return
-          }
+        const media = entry.target
 
-          const reveal = () => {
-            requestAnimationFrame(() => {
-              media.classList.add('is-visible')
-            })
-          }
+        const reveal = () => {
+          requestAnimationFrame(() => {
+            media.classList.add('is-visible')
+          })
 
-          if (media instanceof HTMLImageElement && !media.complete) {
-            media.addEventListener('load', reveal, {once: true})
-          } else {
-            reveal()
-          }
-        })
-      },
-      {
-        root: playgroundPanel instanceof Element ? playgroundPanel : null,
-        rootMargin: '0px 0px 8% 0px',
-        threshold: 0.04,
-      }
-    )
+          observer.unobserve(media)
+        }
 
-    revealMedia.forEach((media) => revealObserver.observe(media))
-  }
+        if (media instanceof HTMLImageElement && !media.complete) {
+          media.addEventListener('load', reveal, { once: true })
+        } else {
+          reveal()
+        }
+      })
+    },
+    {
+      root: playgroundPanel instanceof Element ? playgroundPanel : null,
+      rootMargin: '0px 0px 8% 0px',
+      threshold: 0.04,
+    }
+  )
+
+  revealMedia.forEach((media) => revealObserver.observe(media))
+}
 </script>
