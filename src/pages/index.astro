@@ -1,6 +1,7 @@
 ---
 import { sanityClient } from 'sanity:client'
 import Layout from '../layouts/Layout.astro'
+import 'plyr/dist/plyr.css'
 
 const imageWidths = [480, 768, 1024, 1440, 1920, 2400]
 
@@ -834,6 +835,70 @@ line-height: var(--project-body-line-height);
     pointer-events: none;
   }
 
+  /* Plyr — Film videos only. Controls are deliberately always visible. */
+  :global(.film-video .plyr) {
+    --plyr-color-main: #fff;
+    --plyr-video-background: #000;
+    --plyr-video-control-color: #fff;
+    --plyr-video-control-background-hover: rgba(255, 255, 255, 0.12);
+    --plyr-range-fill-background: #fff;
+    --plyr-range-thumb-background: #fff;
+    --plyr-range-track-height: 2px;
+    --plyr-range-thumb-height: 10px;
+
+    width: 100%;
+    font-family: 'Aeonik Fono', monospace;
+  }
+
+  :global(.film-video .plyr__video-wrapper),
+  :global(.film-video .plyr video) {
+    width: 100%;
+  }
+
+  :global(.film-video .plyr__controls),
+  :global(.film-video .plyr--hide-controls .plyr__controls) {
+    padding: 24px 16px 14px;
+    background: linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0.72),
+      rgba(0, 0, 0, 0)
+    );
+    opacity: 1 !important;
+    transform: none !important;
+    pointer-events: auto !important;
+  }
+
+  :global(.film-video .plyr__control) {
+    border-radius: 50%;
+  }
+
+  :global(.film-video .plyr__control:hover),
+  :global(.film-video .plyr__control:focus-visible) {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  :global(.film-video .plyr__control--overlaid) {
+    width: 58px;
+    height: 58px;
+    border: 1px solid rgba(255, 255, 255, 0.72);
+    background: rgba(0, 0, 0, 0.22);
+  }
+
+  :global(.film-video .plyr__control--overlaid:hover),
+  :global(.film-video .plyr__control--overlaid:focus-visible) {
+    background: rgba(0, 0, 0, 0.34);
+  }
+
+  :global(.film-video .plyr__time) {
+    font-size: 10px;
+    line-height: 1;
+  }
+
+  :global(.film-video .plyr__progress input[type='range']),
+  :global(.film-video .plyr__volume input[type='range']) {
+    cursor: pointer;
+  }
+
   @media (max-width: 700px) {
     .project {
       padding: var(--project-top-space-mobile) var(--project-gutter-mobile) var(--project-bottom-space-mobile);
@@ -990,6 +1055,35 @@ h2 {
 </style>
 
 <script>
+  import Plyr from 'plyr'
+
+  // Film videos use Plyr. Loop videos remain untouched.
+  document.querySelectorAll('.film-video video').forEach((video) => {
+    if (!(video instanceof HTMLVideoElement)) return
+
+    new Plyr(video, {
+      controls: [
+        'play-large',
+        'play',
+        'progress',
+        'current-time',
+        'mute',
+        'fullscreen',
+      ],
+      hideControls: false,
+      clickToPlay: true,
+      keyboard: {
+        focused: true,
+        global: false,
+      },
+      fullscreen: {
+        enabled: true,
+        fallback: true,
+        iosNative: true,
+      },
+    })
+  })
+
   // Unified mobile project-image slideshows
   const mobileSlideshows = document.querySelectorAll(
     '[data-mobile-image-slideshow]'
