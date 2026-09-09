@@ -1052,6 +1052,15 @@ h2 {
       transition: none;
     }
   }
+
+  /* TEMP TEST — remove project animation layers around media */
+.project[data-reveal-ready] > *,
+.project[data-reveal-ready].is-revealed > * {
+  opacity: 1 !important;
+  transform: none !important;
+  transition: none !important;
+  will-change: auto !important;
+}
 </style>
 
 <script>
