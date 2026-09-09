@@ -314,10 +314,3 @@ html.view-playground .playground-view > * {
   }
 }
 
-/* TEMP TEST — remove the Projects content compositing layer */
-html.view-home .projects-view > * {
-  opacity: 1 !important;
-  transform: none !important;
-  transition: none !important;
-  will-change: auto !important;
-}

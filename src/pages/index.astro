@@ -1052,25 +1052,28 @@ h2 {
       transition: none;
     }
   }
-
-  /* TEMP TEST — remove project animation layers around media */
-.project[data-reveal-ready] > *,
-.project[data-reveal-ready].is-revealed > * {
-  opacity: 1 !important;
-  transform: none !important;
-  transition: none !important;
-  will-change: auto !important;
-}
 </style>
 
 <script>
   import Plyr from 'plyr'
 
   // Film videos use Plyr. Loop videos remain untouched.
-  document.querySelectorAll('.film-video video').forEach((video) => {
+  // Only initialise a film when its desktop/mobile copy has a real layout size.
+  const filmWrappers = document.querySelectorAll('.film-video')
+
+  const initialiseFilm = (wrapper) => {
+    if (!(wrapper instanceof HTMLElement)) return
+    if (wrapper.dataset.plyrInitialised === 'true') return
+
+    // Do not initialise the hidden desktop/mobile duplicate.
+    if (wrapper.offsetWidth === 0 || wrapper.offsetHeight === 0) return
+
+    const video = wrapper.querySelector('video')
     if (!(video instanceof HTMLVideoElement)) return
 
-    new Plyr(video, {
+    wrapper.dataset.plyrInitialised = 'true'
+
+    const player = new Plyr(video, {
       controls: [
         'play-large',
         'play',
@@ -1091,6 +1094,36 @@ h2 {
         iosNative: true,
       },
     })
+
+    player.on('ready', () => {
+      // Give Plyr two paint frames, then trigger the geometry refresh that
+      // previously only happened after manually resizing the browser.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          window.dispatchEvent(new Event('resize'))
+        })
+      })
+    })
+  }
+
+  const initialiseVisibleFilms = () => {
+    filmWrappers.forEach(initialiseFilm)
+  }
+
+  // Wait for the full page layout before creating the visible players.
+  if (document.readyState === 'complete') {
+    requestAnimationFrame(initialiseVisibleFilms)
+  } else {
+    window.addEventListener('load', initialiseVisibleFilms, { once: true })
+  }
+
+  // If the breakpoint changes, initialise the copy that has just become visible.
+  const filmResizeObserver = new ResizeObserver(() => {
+    initialiseVisibleFilms()
+  })
+
+  filmWrappers.forEach((wrapper) => {
+    filmResizeObserver.observe(wrapper)
   })
 
   // Unified mobile project-image slideshows
