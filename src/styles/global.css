@@ -41,7 +41,7 @@
     Distance from nav/top of panel to FIRST project only.
   */
   --project-first-top-space: 340px;
-  --project-first-top-space-mobile: 125px;
+  --project-first-top-space-mobile: 240px;
 
   /*
     These are overridden per project below.
