@@ -268,15 +268,6 @@ const projects = await sanityClient.fetch(`
                             >
                               MUTE
                             </button>
-
-                            <button
-                              class="film-control film-fullscreen"
-                              type="button"
-                              data-film-fullscreen
-                              aria-label="Enter fullscreen"
-                            >
-                              FULL
-                            </button>
                           </div>
                         </div>
                       )
@@ -419,15 +410,6 @@ const projects = await sanityClient.fetch(`
                                 aria-label="Mute video"
                               >
                                 MUTE
-                              </button>
-
-                              <button
-                                class="film-control film-fullscreen"
-                                type="button"
-                                data-film-fullscreen
-                                aria-label="Enter fullscreen"
-                              >
-                                FULL
                               </button>
                             </div>
                           </div>
@@ -901,17 +883,9 @@ line-height: var(--project-body-line-height);
   .film-video {
     position: relative;
     width: 100%;
+    overflow: hidden;
     background: var(--black);
   }
-
-  .custom-video-player {
-    overflow: hidden;
-  }
-
-.film-video {
-  position: relative;
-  overflow: hidden;
-}
 
   .custom-video-player video,
   .film-video video {
@@ -928,148 +902,128 @@ line-height: var(--project-body-line-height);
     pointer-events: none;
   }
 
-  /*
-    Film controls deliberately sit BELOW the video in normal document flow.
-    Nothing is layered over the <video>, avoiding Safari/WebKit's video-overlay
-    compositing behaviour entirely.
-  */
   .film-controls {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 2;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
 
-  display: grid;
-  grid-template-columns: auto minmax(70px, 1fr) auto auto auto;
-  align-items: center;
-  gap: 12px;
+    display: grid;
+    grid-template-columns: auto minmax(70px, 1fr) auto auto;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 12px 10px;
 
-  padding: 18px 12px 10px;
+    background: linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0.8),
+      transparent
+    );
 
-  background: linear-gradient(
-    to top,
-    rgba(0, 0, 0, 0.8),
-    transparent
-  );
+    color: var(--white);
+    font-size: 9px;
+    line-height: 1;
+    letter-spacing: 0.08em;
 
-  color: var(--white);
-  font-size: 9px;
-  line-height: 1;
-  letter-spacing: 0.08em;
+    opacity: 0.7;
+    transition: opacity 160ms ease;
+  }
 
-  opacity: 0.7;
-  transition: opacity 160ms ease;
-}
+  .film-video:hover .film-controls,
+  .film-video:focus-within .film-controls {
+    opacity: 1;
+  }
 
-.film-video:hover .film-controls,
-.film-video:focus-within .film-controls {
-  opacity: 1;
-}
+  .film-control {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+  }
 
-.film-control {
-  margin: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  letter-spacing: inherit;
-  cursor: pointer;
-  white-space: nowrap;
-}
+  .film-control:hover,
+  .film-control:focus-visible {
+    color: #999;
+  }
 
-.film-control:hover,
-.film-control:focus-visible {
-  color: #999;
-}
+  .film-control:focus-visible,
+  .film-progress:focus-visible {
+    outline: 1px solid currentColor;
+    outline-offset: 4px;
+  }
 
-.film-control:focus-visible,
-.film-progress:focus-visible {
-  outline: 1px solid currentColor;
-  outline-offset: 4px;
-}
+  .film-time {
+    white-space: nowrap;
+    color: #aaa;
+  }
 
-.film-time {
-  white-space: nowrap;
-  color: #aaa;
-}
+  .film-progress {
+    --film-progress: 0%;
 
-.film-progress {
-  --film-progress: 0%;
+    width: 100%;
+    height: 12px;
+    margin: 0;
+    border: 0;
 
-  width: 100%;
-  height: 12px;
-  margin: 0;
+    background: linear-gradient(
+      to right,
+      var(--white) 0%,
+      var(--white) var(--film-progress),
+      #444 var(--film-progress),
+      #444 100%
+    );
+    background-size: 100% 1px;
+    background-position: center;
+    background-repeat: no-repeat;
 
-  border: 0;
-  background: linear-gradient(
-    to right,
-    var(--white) 0%,
-    var(--white) var(--film-progress),
-    #444 var(--film-progress),
-    #444 100%
-  );
-  background-size: 100% 1px;
-  background-position: center;
-  background-repeat: no-repeat;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+  }
 
-  cursor: pointer;
-  appearance: none;
-  -webkit-appearance: none;
-}
+  .film-progress::-webkit-slider-runnable-track {
+    height: 12px;
+    background: transparent;
+  }
 
-.film-progress::-webkit-slider-runnable-track {
-  height: 12px;
-  background: transparent;
-}
+  .film-progress::-webkit-slider-thumb {
+    width: 8px;
+    height: 8px;
+    margin-top: 2px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--white);
+    appearance: none;
+    -webkit-appearance: none;
+  }
 
-.film-progress::-webkit-slider-thumb {
-  width: 8px;
-  height: 8px;
-  margin-top: 2px;
-  border: 0;
-  border-radius: 50%;
-  background: var(--white);
-  appearance: none;
-  -webkit-appearance: none;
-}
+  .film-progress::-moz-range-track {
+    height: 1px;
+    background: transparent;
+  }
 
-.film-progress::-moz-range-track {
-  height: 1px;
-  background: transparent;
-}
+  .film-progress::-moz-range-progress {
+    height: 1px;
+    background: var(--white);
+  }
 
-.film-progress::-moz-range-progress {
-  height: 1px;
-  background: var(--white);
-}
-
-.film-progress::-moz-range-thumb {
-  width: 8px;
-  height: 8px;
-  border: 0;
-  border-radius: 50%;
-  background: var(--white);
-}
-
-.film-video:fullscreen,
-.film-video:-webkit-full-screen {
-  width: 100%;
-  height: 100%;
-  background: #000;
-}
-
-.film-video:fullscreen video,
-.film-video:-webkit-full-screen video {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
+  .film-progress::-moz-range-thumb {
+    width: 8px;
+    height: 8px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--white);
+  }
 
   @media (max-width: 700px) {
     .film-controls {
-      grid-template-columns: auto minmax(50px, 1fr) auto auto;
+      grid-template-columns: auto minmax(50px, 1fr) auto;
       gap: 9px;
       padding: 10px;
       font-size: 8px;
@@ -1236,10 +1190,7 @@ h2 {
 </style>
 
 <script>
-  /* --------------------------------------------------
-     CUSTOM FILM PLAYER
-  -------------------------------------------------- */
-
+  // Film videos use a small custom control bar over the bottom of the video.
   const filmPlayers = document.querySelectorAll('[data-film-player]')
 
   const formatFilmTime = (seconds) => {
@@ -1260,58 +1211,38 @@ h2 {
     const progress = player.querySelector('[data-film-progress]')
     const time = player.querySelector('[data-film-time]')
     const muteButton = player.querySelector('[data-film-mute]')
-    const fullscreenButton = player.querySelector('[data-film-fullscreen]')
 
     if (!(video instanceof HTMLVideoElement)) return
     if (!(playButton instanceof HTMLButtonElement)) return
     if (!(progress instanceof HTMLInputElement)) return
     if (!(time instanceof HTMLElement)) return
     if (!(muteButton instanceof HTMLButtonElement)) return
-    if (!(fullscreenButton instanceof HTMLButtonElement)) return
 
     const updatePlayState = () => {
       const isPlaying = !video.paused && !video.ended
-
       playButton.textContent = isPlaying ? 'PAUSE' : 'PLAY'
-      playButton.setAttribute(
-        'aria-label',
-        isPlaying ? 'Pause video' : 'Play video'
-      )
+      playButton.setAttribute('aria-label', isPlaying ? 'Pause video' : 'Play video')
     }
 
     const updateMuteState = () => {
       const isMuted = video.muted || video.volume === 0
-
       muteButton.textContent = isMuted ? 'SOUND' : 'MUTE'
-      muteButton.setAttribute(
-        'aria-label',
-        isMuted ? 'Unmute video' : 'Mute video'
-      )
+      muteButton.setAttribute('aria-label', isMuted ? 'Unmute video' : 'Mute video')
     }
 
     const updateTimeline = () => {
       const duration = Number.isFinite(video.duration) ? video.duration : 0
-      const current = Number.isFinite(video.currentTime)
-        ? video.currentTime
-        : 0
-
-      const percentage =
-        duration > 0 ? (current / duration) * 100 : 0
+      const current = Number.isFinite(video.currentTime) ? video.currentTime : 0
+      const percentage = duration > 0 ? (current / duration) * 100 : 0
 
       progress.value = String(percentage)
-      progress.style.setProperty(
-        '--film-progress',
-        `${percentage}%`
-      )
-
-      time.textContent =
-        `${formatFilmTime(current)} / ${formatFilmTime(duration)}`
+      progress.style.setProperty('--film-progress', `${percentage}%`)
+      time.textContent = `${formatFilmTime(current)} / ${formatFilmTime(duration)}`
     }
 
     const togglePlayback = () => {
       if (video.paused || video.ended) {
         const playPromise = video.play()
-
         if (playPromise instanceof Promise) {
           playPromise.catch(() => {})
         }
@@ -1330,31 +1261,8 @@ h2 {
     progress.addEventListener('input', () => {
       if (!Number.isFinite(video.duration) || video.duration <= 0) return
 
-      video.currentTime =
-        (Number(progress.value) / 100) * video.duration
-
+      video.currentTime = (Number(progress.value) / 100) * video.duration
       updateTimeline()
-    })
-
-    fullscreenButton.addEventListener('click', async () => {
-      try {
-        if (document.fullscreenElement) {
-          await document.exitFullscreen()
-          return
-        }
-
-        if (player.requestFullscreen) {
-          await player.requestFullscreen()
-          return
-        }
-
-        // Older Safari / iOS fallback.
-        if (typeof video.webkitEnterFullscreen === 'function') {
-          video.webkitEnterFullscreen()
-        }
-      } catch {
-        // Playback remains usable if fullscreen isn't available.
-      }
     })
 
     video.addEventListener('play', updatePlayState)
@@ -1371,65 +1279,34 @@ h2 {
   })
 
 
-  /* --------------------------------------------------
-     PAUSE FILMS WHEN THEY LEAVE THE VIEWPORT
-  -------------------------------------------------- */
-
-  const filmVideos = document.querySelectorAll(
-    '[data-film-player] video'
-  )
-
+  // Pause a film once it has completely left the viewport.
+  // Returning to it does not automatically resume playback.
   const filmViewportObserver = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
       if (entry.isIntersecting) return
 
       const video = entry.target
 
-      if (!(video instanceof HTMLVideoElement)) return
-
-      // Don't interfere with a video while its player is fullscreen.
-      if (
-        document.fullscreenElement &&
-        document.fullscreenElement.contains(video)
-      ) {
-        return
-      }
-
-      if (!video.paused) {
+      if (video instanceof HTMLVideoElement && !video.paused) {
         video.pause()
       }
     })
   })
 
-  filmVideos.forEach((video) => {
+  document.querySelectorAll('[data-film-player] video').forEach((video) => {
     filmViewportObserver.observe(video)
   })
 
-
-  /* --------------------------------------------------
-     MOBILE IMAGE SLIDESHOWS
-  -------------------------------------------------- */
-
+  // Unified mobile project-image slideshows
   const mobileSlideshows = document.querySelectorAll(
     '[data-mobile-image-slideshow]'
   )
 
   mobileSlideshows.forEach((slideshow) => {
-    const track = slideshow.querySelector(
-      '[data-mobile-image-track]'
-    )
-
-    const slides = Array.from(
-      slideshow.querySelectorAll('.mobile-image-slide')
-    )
-
-    const previousButton = slideshow.querySelector(
-      '[data-mobile-slide-prev]'
-    )
-
-    const nextButton = slideshow.querySelector(
-      '[data-mobile-slide-next]'
-    )
+    const track = slideshow.querySelector('[data-mobile-image-track]')
+    const slides = Array.from(slideshow.querySelectorAll('.mobile-image-slide'))
+    const previousButton = slideshow.querySelector('[data-mobile-slide-prev]')
+    const nextButton = slideshow.querySelector('[data-mobile-slide-next]')
 
     if (!(track instanceof HTMLElement)) return
     if (!(previousButton instanceof HTMLButtonElement)) return
@@ -1441,8 +1318,7 @@ h2 {
     let autoplayInterval = null
 
     const render = () => {
-      track.style.transform =
-        `translateX(-${current * 100}%)`
+      track.style.transform = `translateX(-${current * 100}%)`
     }
 
     const show = (index) => {
@@ -1451,24 +1327,17 @@ h2 {
     }
 
     const stopAutoplay = () => {
-      if (!autoplayInterval) return
-
-      window.clearInterval(autoplayInterval)
-      autoplayInterval = null
+      if (autoplayInterval) {
+        window.clearInterval(autoplayInterval)
+        autoplayInterval = null
+      }
     }
 
     const startAutoplay = () => {
       stopAutoplay()
 
       if (slides.length < 2) return
-
-      if (
-        window.matchMedia(
-          '(prefers-reduced-motion: reduce)'
-        ).matches
-      ) {
-        return
-      }
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
       autoplayInterval = window.setInterval(() => {
         show(current + 1)
@@ -1498,7 +1367,11 @@ h2 {
 
       if (Math.abs(distance) < 40) return
 
-      show(distance < 0 ? current + 1 : current - 1)
+      if (distance < 0) {
+        show(current + 1)
+      } else {
+        show(current - 1)
+      }
     })
 
     slideshow.addEventListener('pointercancel', () => {
@@ -1509,26 +1382,15 @@ h2 {
     startAutoplay()
   })
 
-
-  /* --------------------------------------------------
-     PROJECT REVEAL
-  -------------------------------------------------- */
-
-  const revealProjects = Array.from(
-    document.querySelectorAll('[data-project]')
-  )
-
+  // Strong project scroll-in reveal
+  const revealProjects = Array.from(document.querySelectorAll('[data-project]'))
   const projectsPanel = document.querySelector('.projects-view')
 
-  if (
-    !window.matchMedia(
-      '(prefers-reduced-motion: reduce)'
-    ).matches
-  ) {
+  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     revealProjects.forEach((project, index) => {
       project.setAttribute('data-reveal-ready', '')
 
-      // First project is already present on page load.
+      // Keep the first project present on initial load.
       if (index === 0) {
         project.classList.add('is-revealed')
       }
@@ -1541,9 +1403,6 @@ h2 {
             if (!entry.isIntersecting) return
 
             entry.target.classList.add('is-revealed')
-
-            // Reveal once. Don't reset it every time the
-            // user scrolls away and comes back.
             observer.unobserve(entry.target)
           })
         },
@@ -1554,24 +1413,13 @@ h2 {
         }
       )
 
-      revealProjects.slice(1).forEach((project) => {
-        revealObserver.observe(project)
-      })
+      revealProjects.slice(1).forEach((project) => revealObserver.observe(project))
     }
   }
 
-
-  /* --------------------------------------------------
-     PROJECT TAG FILTERING
-  -------------------------------------------------- */
-
-  const allProjects = Array.from(
-    document.querySelectorAll('[data-project]')
-  )
-
-  const allTagButtons = Array.from(
-    document.querySelectorAll('[data-project-tag]')
-  )
+  // Project tag filtering
+  const allProjects = Array.from(document.querySelectorAll('[data-project]'))
+  const allTagButtons = Array.from(document.querySelectorAll('[data-project-tag]'))
 
   const normaliseTag = (tag) =>
     String(tag || '').trim().toLowerCase()
@@ -1580,9 +1428,7 @@ h2 {
   let filterTimer = null
 
   const projectHasTag = (project, tag) => {
-    const tags = String(
-      project.getAttribute('data-project-tags') || ''
-    )
+    const tags = String(project.getAttribute('data-project-tags') || '')
       .split('|')
       .map(normaliseTag)
       .filter(Boolean)
@@ -1593,14 +1439,10 @@ h2 {
   const updateTagButtons = () => {
     allTagButtons.forEach((button) => {
       if (!(button instanceof HTMLButtonElement)) return
-
       const buttonTag = normaliseTag(button.dataset.tag)
-
       button.setAttribute(
         'aria-pressed',
-        activeTag && buttonTag === activeTag
-          ? 'true'
-          : 'false'
+        activeTag && buttonTag === activeTag ? 'true' : 'false'
       )
     })
   }
@@ -1617,49 +1459,32 @@ h2 {
     window.history.replaceState({}, '', url)
   }
 
-  const applyProjectFilter = ({
-    scrollToFirst = false
-  } = {}) => {
-    if (filterTimer) {
-      window.clearTimeout(filterTimer)
-    }
+  const applyProjectFilter = ({scrollToFirst = false} = {}) => {
+    if (filterTimer) window.clearTimeout(filterTimer)
 
-    const matchingProjects = allProjects.filter(
-      (project) =>
-        activeTag
-          ? projectHasTag(project, activeTag)
-          : true
+    const matchingProjects = allProjects.filter((project) =>
+      activeTag ? projectHasTag(project, activeTag) : true
     )
 
     allProjects.forEach((project) => {
-      const shouldShow =
-        matchingProjects.includes(project)
+      const shouldShow = matchingProjects.includes(project)
 
       if (shouldShow) {
         project.hidden = false
-
         requestAnimationFrame(() => {
-          project.classList.remove(
-            'is-filtering-out'
-          )
+          project.classList.remove('is-filtering-out')
         })
       } else {
-        project.classList.add(
-          'is-filtering-out'
-        )
+        project.classList.add('is-filtering-out')
       }
     })
 
     filterTimer = window.setTimeout(() => {
       allProjects.forEach((project) => {
-        project.hidden =
-          !matchingProjects.includes(project)
+        project.hidden = !matchingProjects.includes(project)
       })
 
-      if (
-        scrollToFirst &&
-        matchingProjects.length
-      ) {
+      if (scrollToFirst && matchingProjects.length) {
         matchingProjects[0].scrollIntoView({
           behavior: 'smooth',
           block: 'start',
@@ -1675,33 +1500,21 @@ h2 {
     if (!(button instanceof HTMLButtonElement)) return
 
     button.addEventListener('click', () => {
-      const clickedTag =
-        normaliseTag(button.dataset.tag)
-
+      const clickedTag = normaliseTag(button.dataset.tag)
       if (!clickedTag) return
 
-      activeTag =
-        activeTag === clickedTag
-          ? null
-          : clickedTag
-
-      applyProjectFilter({
-        scrollToFirst: true
-      })
+      activeTag = activeTag === clickedTag ? null : clickedTag
+      applyProjectFilter({scrollToFirst: true})
     })
   })
 
   const tagFromUrl = normaliseTag(
-    new URL(window.location.href)
-      .searchParams
-      .get('tag')
+    new URL(window.location.href).searchParams.get('tag')
   )
 
   if (tagFromUrl) {
     const tagExists = allTagButtons.some(
-      (button) =>
-        normaliseTag(button.dataset.tag) ===
-        tagFromUrl
+      (button) => normaliseTag(button.dataset.tag) === tagFromUrl
     )
 
     if (tagExists) {
@@ -1710,154 +1523,105 @@ h2 {
     }
   }
 
+  // Internal links from description copy to another project.
+  // If a tag filter is active, clear it first so the target project is visible.
+  document.querySelectorAll('[data-project-link]').forEach((link) => {
+    if (!(link instanceof HTMLAnchorElement)) return
 
-  /* --------------------------------------------------
-     INTERNAL PROJECT LINKS
-  -------------------------------------------------- */
+    link.addEventListener('click', (event) => {
+      const slug = link.dataset.projectLink
+      if (!slug) return
 
-  document
-    .querySelectorAll('[data-project-link]')
-    .forEach((link) => {
-      if (!(link instanceof HTMLAnchorElement)) return
+      const target = document.getElementById(`project-${slug}`)
+      if (!(target instanceof HTMLElement)) return
 
-      link.addEventListener('click', (event) => {
-        const slug = link.dataset.projectLink
-        if (!slug) return
+      event.preventDefault()
 
-        const target = document.getElementById(
-          `project-${slug}`
-        )
+      const scrollToProject = () => {
+        target.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        })
 
-        if (!(target instanceof HTMLElement)) return
+        const url = new URL(window.location.href)
+        url.hash = `project-${slug}`
+        window.history.replaceState({}, '', url)
+      }
 
-        event.preventDefault()
-
-        const scrollToProject = () => {
-          target.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start',
-          })
-
-          const url = new URL(
-            window.location.href
-          )
-
-          url.hash = `project-${slug}`
-
-          window.history.replaceState(
-            {},
-            '',
-            url
-          )
-        }
-
-        if (activeTag) {
-          activeTag = null
-          applyProjectFilter()
-
-          window.setTimeout(
-            scrollToProject,
-            220
-          )
-        } else {
-          scrollToProject()
-        }
-      })
+      if (activeTag) {
+        activeTag = null
+        applyProjectFilter()
+        window.setTimeout(scrollToProject, 220)
+      } else {
+        scrollToProject()
+      }
     })
+  })
 
+  // Read more / read less
+  const descriptions = document.querySelectorAll('[data-project-description]')
 
-  /* --------------------------------------------------
-     READ MORE / READ LESS
-  -------------------------------------------------- */
-
-  const descriptions = document.querySelectorAll(
-    '[data-project-description]'
-  )
-
-  const setDescriptionExpanded = (
-    description,
-    expanded
-  ) => {
-    const short = description.querySelector(
-      '[data-short-description]'
-    )
-
-    const long = description.querySelector(
-      '[data-long-description]'
-    )
-
-    const button = description.querySelector(
-      '[data-read-more]'
-    )
+  function closeDescription(description) {
+    const short = description.querySelector('[data-short-description]')
+    const long = description.querySelector('[data-long-description]')
+    const button = description.querySelector('[data-read-more]')
 
     if (!(short instanceof HTMLElement)) return
     if (!(long instanceof HTMLElement)) return
     if (!(button instanceof HTMLButtonElement)) return
 
-    short.hidden = expanded
-    long.hidden = !expanded
+    short.hidden = false
+    long.hidden = true
+    button.textContent = 'Read more'
+    button.setAttribute('aria-expanded', 'false')
+    description.removeAttribute('data-expanded')
+  }
 
-    button.textContent =
-      expanded ? 'Read less' : 'Read more'
+  function openDescription(description) {
+    const short = description.querySelector('[data-short-description]')
+    const long = description.querySelector('[data-long-description]')
+    const button = description.querySelector('[data-read-more]')
 
-    button.setAttribute(
-      'aria-expanded',
-      String(expanded)
-    )
+    if (!(short instanceof HTMLElement)) return
+    if (!(long instanceof HTMLElement)) return
+    if (!(button instanceof HTMLButtonElement)) return
 
-    if (expanded) {
-      description.setAttribute(
-        'data-expanded',
-        'true'
-      )
-    } else {
-      description.removeAttribute(
-        'data-expanded'
-      )
-    }
+    short.hidden = true
+    long.hidden = false
+    button.textContent = 'Read less'
+    button.setAttribute('aria-expanded', 'true')
+    description.setAttribute('data-expanded', 'true')
   }
 
   descriptions.forEach((description) => {
-    const button = description.querySelector(
-      '[data-read-more]'
-    )
+    const button = description.querySelector('[data-read-more]')
 
     if (!(button instanceof HTMLButtonElement)) return
 
     button.addEventListener('click', () => {
-      const expanded =
-        description.hasAttribute(
-          'data-expanded'
-        )
+      const isExpanded = description.hasAttribute('data-expanded')
 
-      setDescriptionExpanded(
-        description,
-        !expanded
-      )
+      if (isExpanded) {
+        closeDescription(description)
+      } else {
+        openDescription(description)
+      }
     })
   })
 
   document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape') return
 
-    const expandedDescription =
-      document.querySelector(
-        '[data-project-description][data-expanded]'
-      )
+    const expandedDescription = document.querySelector(
+      '[data-project-description][data-expanded]'
+    )
 
-    if (!(expandedDescription instanceof HTMLElement)) {
-      return
-    }
+    if (!expandedDescription) return
 
     const positionBeforeCollapse =
-      expandedDescription
-        .getBoundingClientRect()
-        .top
+      expandedDescription.getBoundingClientRect().top
 
-    setDescriptionExpanded(
-      expandedDescription,
-      false
-    )
+    closeDescription(expandedDescription)
 
     if (positionBeforeCollapse < 0) {
       expandedDescription.scrollIntoView({
@@ -1867,33 +1631,16 @@ h2 {
     }
   })
 
-
-  /* --------------------------------------------------
-     DESKTOP PROJECT SLIDESHOWS
-  -------------------------------------------------- */
-
-  const slideshows = document.querySelectorAll(
-    '[data-project-slideshow]'
-  )
+  // Individual project media slideshows
+  const slideshows = document.querySelectorAll('[data-project-slideshow]')
 
   slideshows.forEach((slideshow) => {
-    const track = slideshow.querySelector(
-      '[data-slideshow-track]'
-    )
-
+    const track = slideshow.querySelector('[data-slideshow-track]')
     const slides = Array.from(
-      slideshow.querySelectorAll(
-        '.slideshow-slide'
-      )
+      slideshow.querySelectorAll('.slideshow-slide')
     )
-
-    const previousButton = slideshow.querySelector(
-      '[data-slideshow-prev]'
-    )
-
-    const nextButton = slideshow.querySelector(
-      '[data-slideshow-next]'
-    )
+    const previousButton = slideshow.querySelector('[data-slideshow-prev]')
+    const nextButton = slideshow.querySelector('[data-slideshow-next]')
 
     if (!(track instanceof HTMLElement)) return
     if (!(previousButton instanceof HTMLButtonElement)) return
@@ -1903,78 +1650,61 @@ h2 {
     let current = 0
     let interval
 
-    const render = () => {
-      track.style.transform =
-        `translateX(-${current * 100}%)`
+    function renderSlide() {
+      track.style.transform = `translateX(-${current * 100}%)`
     }
 
-    const show = (index) => {
-      current =
-        (index + slides.length) %
-        slides.length
-
-      render()
+    function showSlide(index) {
+      current = (index + slides.length) % slides.length
+      renderSlide()
     }
 
-    const stopAutoplay = () => {
-      if (!interval) return
-
-      window.clearInterval(interval)
-      interval = undefined
+    function nextSlide() {
+      showSlide(current + 1)
     }
 
-    const startAutoplay = () => {
-      if (
-        window.matchMedia(
-          '(prefers-reduced-motion: reduce)'
-        ).matches
-      ) {
-        return
+    function previousSlide() {
+      showSlide(current - 1)
+    }
+
+    function startAutoplay() {
+      interval = window.setInterval(nextSlide, 4000)
+    }
+
+    function stopAutoplay() {
+      if (interval) {
+        window.clearInterval(interval)
+        interval = undefined
       }
-
-      interval = window.setInterval(() => {
-        show(current + 1)
-      }, 4000)
     }
 
-    previousButton.addEventListener(
-      'click',
-      (event) => {
-        event.stopPropagation()
-        stopAutoplay()
-        show(current - 1)
-      }
-    )
+    previousButton.addEventListener('click', (event) => {
+      event.stopPropagation()
+      stopAutoplay()
+      previousSlide()
+    })
 
-    nextButton.addEventListener(
-      'click',
-      (event) => {
-        event.stopPropagation()
-        stopAutoplay()
-        show(current + 1)
-      }
-    )
+    nextButton.addEventListener('click', (event) => {
+      event.stopPropagation()
+      stopAutoplay()
+      nextSlide()
+    })
 
-    render()
+    renderSlide()
     startAutoplay()
   })
 
-
-  /* --------------------------------------------------
-     ARROW-KEY PROJECT NAVIGATION
-  -------------------------------------------------- */
-
+  // Arrow-key navigation between projects.
+  // Normal scrolling is untouched; this only responds to deliberate ↑ / ↓ presses.
   const getVisibleProjectSections = () =>
-    Array.from(
-      document.querySelectorAll('[data-project]')
-    ).filter((project) => !project.hidden)
+    Array.from(document.querySelectorAll('[data-project]')).filter(
+      (project) => !project.hidden
+    )
 
-  const isTypingOrUsingControl = () => {
+  function isTypingOrUsingControl() {
     const active = document.activeElement
 
-    if (!(active instanceof HTMLElement)) {
-      return false
-    }
+    if (!(active instanceof HTMLElement)) return false
 
     return Boolean(
       active.closest(
@@ -1983,105 +1713,55 @@ h2 {
     )
   }
 
-  const getCurrentProjectIndex = (
-    projectSections
-  ) => {
-    const marker =
-      window.innerHeight * 0.35
+  function getCurrentProjectIndex(projectSections) {
+    const marker = window.innerHeight * 0.35
 
     let bestIndex = 0
-    let bestDistance =
-      Number.POSITIVE_INFINITY
+    let bestDistance = Number.POSITIVE_INFINITY
 
-    projectSections.forEach(
-      (project, index) => {
-        const rect =
-          project.getBoundingClientRect()
+    projectSections.forEach((project, index) => {
+      const rect = project.getBoundingClientRect()
 
-        if (
-          rect.top <= marker &&
-          rect.bottom > marker
-        ) {
-          bestIndex = index
-          bestDistance = 0
-          return
-        }
-
-        const distance =
-          Math.abs(rect.top - marker)
-
-        if (distance < bestDistance) {
-          bestDistance = distance
-          bestIndex = index
-        }
+      if (rect.top <= marker && rect.bottom > marker) {
+        bestIndex = index
+        bestDistance = 0
+        return
       }
-    )
+
+      const distance = Math.abs(rect.top - marker)
+
+      if (distance < bestDistance) {
+        bestDistance = distance
+        bestIndex = index
+      }
+    })
 
     return bestIndex
   }
 
-  document.addEventListener(
-    'keydown',
-    (event) => {
-      if (
-        event.key !== 'ArrowDown' &&
-        event.key !== 'ArrowUp'
-      ) {
-        return
-      }
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
+    if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return
+    if (isTypingOrUsingControl()) return
+    if (!document.documentElement.classList.contains('view-home')) return
+    const projectSections = getVisibleProjectSections()
 
-      if (
-        event.metaKey ||
-        event.ctrlKey ||
-        event.altKey ||
-        event.shiftKey
-      ) {
-        return
-      }
+    if (!projectSections.length) return
 
-      if (isTypingOrUsingControl()) return
+    const currentIndex = getCurrentProjectIndex(projectSections)
 
-      if (
-        !document.documentElement
-          .classList
-          .contains('view-home')
-      ) {
-        return
-      }
+    const targetIndex =
+      event.key === 'ArrowDown'
+        ? Math.min(currentIndex + 1, projectSections.length - 1)
+        : Math.max(currentIndex - 1, 0)
 
-      const projectSections =
-        getVisibleProjectSections()
+    if (targetIndex === currentIndex) return
 
-      if (!projectSections.length) return
+    event.preventDefault()
 
-      const currentIndex =
-        getCurrentProjectIndex(
-          projectSections
-        )
-
-      const targetIndex =
-        event.key === 'ArrowDown'
-          ? Math.min(
-              currentIndex + 1,
-              projectSections.length - 1
-            )
-          : Math.max(
-              currentIndex - 1,
-              0
-            )
-
-      if (targetIndex === currentIndex) {
-        return
-      }
-
-      event.preventDefault()
-
-      projectSections[
-        targetIndex
-      ].scrollIntoView({
-        behavior: 'smooth',
-        block: 'start',
-      })
-    }
-  )
+    projectSections[targetIndex].scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    })
+  })
 </script>
