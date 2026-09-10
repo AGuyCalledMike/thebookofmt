@@ -138,8 +138,6 @@ const settings = await sanityClient.fetch(`
 </style>
 
 <script>
-  // Eyes follow the pointer on desktop only.
-  // Touch/mobile devices keep the pupils centred.
   const eyes = document.querySelectorAll('.eye')
 
   const mobileEyes = window.matchMedia(
@@ -149,9 +147,7 @@ const settings = await sanityClient.fetch(`
   const centreEyes = () => {
     eyes.forEach((eye) => {
       const pupil = eye.querySelector('.pupil')
-
       if (!(pupil instanceof HTMLElement)) return
-
       pupil.style.transform = 'translate(0, 0)'
     })
   }
@@ -164,7 +160,6 @@ const settings = await sanityClient.fetch(`
 
     eyes.forEach((eye) => {
       const pupil = eye.querySelector('.pupil')
-
       if (!(pupil instanceof HTMLElement)) return
 
       const rect = eye.getBoundingClientRect()
@@ -195,7 +190,6 @@ const settings = await sanityClient.fetch(`
     centreEyes()
   }
 
-  // Mobile blink while the actual scroll panels move.
   let blinkCooldown = false
   let blinkTimeout = null
 
@@ -203,7 +197,6 @@ const settings = await sanityClient.fetch(`
     if (!mobileEyes.matches || blinkCooldown) return
 
     blinkCooldown = true
-
     document.documentElement.classList.add('eyes-blink')
 
     window.setTimeout(() => {
@@ -227,11 +220,9 @@ const settings = await sanityClient.fetch(`
     })
   })
 
-  window.addEventListener(
-    'scroll',
-    triggerMobileBlink,
-    { passive: true }
-  )
+  window.addEventListener('scroll', triggerMobileBlink, {
+    passive: true,
+  })
 
   mobileEyes.addEventListener?.('change', () => {
     if (!mobileEyes.matches) {
@@ -247,21 +238,18 @@ const settings = await sanityClient.fetch(`
     }
   })
 
-  // Contact copies email.
   const contactButton = document.querySelector('.contact')
 
   contactButton?.addEventListener('click', async () => {
     if (!(contactButton instanceof HTMLElement)) return
 
     const email = contactButton.dataset.email
-
     if (!email) return
 
     try {
       await navigator.clipboard.writeText(email)
 
       const originalText = contactButton.textContent
-
       contactButton.textContent = 'Copied'
 
       window.setTimeout(() => {
@@ -272,10 +260,7 @@ const settings = await sanityClient.fetch(`
     }
   })
 
-  // Three-panel navigation.
-  const viewTriggers = document.querySelectorAll(
-    '[data-view-trigger]'
-  )
+  const viewTriggers = document.querySelectorAll('[data-view-trigger]')
 
   const showView = (view) => {
     document.documentElement.classList.remove(
@@ -284,9 +269,7 @@ const settings = await sanityClient.fetch(`
       'view-playground'
     )
 
-    document.documentElement.classList.add(
-      `view-${view}`
-    )
+    document.documentElement.classList.add(`view-${view}`)
   }
 
   viewTriggers.forEach((trigger) => {
@@ -294,14 +277,50 @@ const settings = await sanityClient.fetch(`
       if (!(trigger instanceof HTMLElement)) return
 
       const view = trigger.dataset.viewTrigger
-
       if (!view) return
 
       showView(view)
     })
   })
 
-  // Escape returns to Projects.
+  // Project links inside Info use data-info-project-link/data-project-slug
+  // (they are different from the data-project-link links inside project copy).
+  // Prevent the browser's native hash scroll, switch to Projects, then scroll
+  // only the Projects panel vertically.
+  document.querySelectorAll('[data-info-project-link]').forEach((link) => {
+    if (!(link instanceof HTMLAnchorElement)) return
+
+    link.addEventListener('click', (event) => {
+      const slug = link.dataset.projectSlug
+      if (!slug) return
+
+      const target = document.getElementById(`project-${slug}`)
+      const projectsPanel = document.querySelector('.projects-view')
+
+      if (!(target instanceof HTMLElement)) return
+      if (!(projectsPanel instanceof HTMLElement)) return
+
+      event.preventDefault()
+
+      showView('home')
+
+      requestAnimationFrame(() => {
+        const panelRect = projectsPanel.getBoundingClientRect()
+        const targetRect = target.getBoundingClientRect()
+
+        const targetTop =
+          projectsPanel.scrollTop +
+          targetRect.top -
+          panelRect.top
+
+        projectsPanel.scrollTo({
+          top: targetTop,
+          behavior: 'smooth',
+        })
+      })
+    })
+  })
+
   document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape') return
 
@@ -313,19 +332,14 @@ const settings = await sanityClient.fetch(`
     }
   })
 
-  // Back to top applies to whichever panel is currently visible.
   const backToTop = document.querySelector('.back-to-top')
 
   backToTop?.addEventListener('click', () => {
     let panel = document.querySelector('.projects-view')
 
-    if (
-      document.documentElement.classList.contains('view-playground')
-    ) {
+    if (document.documentElement.classList.contains('view-playground')) {
       panel = document.querySelector('.playground-view')
-    } else if (
-      document.documentElement.classList.contains('view-info')
-    ) {
+    } else if (document.documentElement.classList.contains('view-info')) {
       panel = document.querySelector('.info-view')
     }
 

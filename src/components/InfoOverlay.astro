@@ -229,9 +229,9 @@ const info = await sanityClient.fetch(`
   }
 
   .info-panel-content :global(.rich-link) {
-    color: #82ff00;
-    text-decoration: none;
-    transition: opacity 150ms ease;
+    color: #555;
+  text-decoration: none;
+  transition: opacity 150ms ease;
   }
 
   .info-panel-content :global(.rich-link:hover) {
@@ -389,6 +389,8 @@ const info = await sanityClient.fetch(`
 </style>
 
 <script>
+  // Info project links switch to Projects, then scroll only the Projects panel
+  // vertically. Avoid scrollIntoView(), which can drag the 3-panel layout sideways.
   const projectLinks = document.querySelectorAll('[data-info-project-link]')
 
   projectLinks.forEach((link) => {
@@ -399,7 +401,10 @@ const info = await sanityClient.fetch(`
       if (!slug) return
 
       const project = document.getElementById(`project-${slug}`)
-      if (!project) return
+      const projectsPanel = document.querySelector('.projects-view')
+
+      if (!(project instanceof HTMLElement)) return
+      if (!(projectsPanel instanceof HTMLElement)) return
 
       event.preventDefault()
 
@@ -410,11 +415,22 @@ const info = await sanityClient.fetch(`
       document.documentElement.classList.add('view-home')
 
       window.setTimeout(() => {
-        project.scrollIntoView({
+        const panelRect = projectsPanel.getBoundingClientRect()
+        const projectRect = project.getBoundingClientRect()
+
+  const topOffset = window.innerWidth <= 700 ? 70 : 120
+
+const targetTop =
+  projectsPanel.scrollTop +
+  projectRect.top -
+  panelRect.top -
+  topOffset
+
+        projectsPanel.scrollTo({
+          top: targetTop,
           behavior: 'smooth',
-          block: 'start',
         })
-      }, 350)
+      }, 700)
     })
   })
 </script>
