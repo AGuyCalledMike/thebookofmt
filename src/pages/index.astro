@@ -922,6 +922,8 @@ line-height: var(--project-body-line-height);
 
   .film-video video {
     cursor: pointer;
+    border-radius: 0;
+    transform: scale(1.01);
   }
 
   .loop-video video {
@@ -929,9 +931,7 @@ line-height: var(--project-body-line-height);
   }
 
   /*
-    Film controls deliberately sit BELOW the video in normal document flow.
-    Nothing is layered over the <video>, avoiding Safari/WebKit's video-overlay
-    compositing behaviour entirely.
+    Film controls sit over the bottom of the video.
   */
   .film-controls {
   position: absolute;
@@ -1350,6 +1350,24 @@ h2 {
     updateTimeline()
   })
 
+  // Pause Film videos when they are completely outside the viewport.
+  // Returning to them does not automatically resume playback.
+  const filmViewportObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) return
+
+      const video = entry.target
+
+      if (video instanceof HTMLVideoElement && !video.paused) {
+        video.pause()
+      }
+    })
+  })
+
+  document.querySelectorAll('[data-film-player] video').forEach((video) => {
+    filmViewportObserver.observe(video)
+  })
+
   // Unified mobile project-image slideshows
   const mobileSlideshows = document.querySelectorAll(
     '[data-mobile-image-slideshow]'
@@ -1433,12 +1451,6 @@ h2 {
 
     render()
     startAutoplay()
-
-    const handleResize = () => {
-      render()
-    }
-
-    window.addEventListener('resize', handleResize)
   })
 
   // Strong project scroll-in reveal
