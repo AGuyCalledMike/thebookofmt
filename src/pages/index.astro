@@ -1236,9 +1236,10 @@ h2 {
 </style>
 
 <script>
-  // Film videos use a small custom control bar BELOW the video.
-  // There is no visual overlay on the <video>, specifically to avoid Safari's
-  // video compositing/repaint problems.
+  /* --------------------------------------------------
+     CUSTOM FILM PLAYER
+  -------------------------------------------------- */
+
   const filmPlayers = document.querySelectorAll('[data-film-player]')
 
   const formatFilmTime = (seconds) => {
@@ -1270,29 +1271,47 @@ h2 {
 
     const updatePlayState = () => {
       const isPlaying = !video.paused && !video.ended
+
       playButton.textContent = isPlaying ? 'PAUSE' : 'PLAY'
-      playButton.setAttribute('aria-label', isPlaying ? 'Pause video' : 'Play video')
+      playButton.setAttribute(
+        'aria-label',
+        isPlaying ? 'Pause video' : 'Play video'
+      )
     }
 
     const updateMuteState = () => {
       const isMuted = video.muted || video.volume === 0
+
       muteButton.textContent = isMuted ? 'SOUND' : 'MUTE'
-      muteButton.setAttribute('aria-label', isMuted ? 'Unmute video' : 'Mute video')
+      muteButton.setAttribute(
+        'aria-label',
+        isMuted ? 'Unmute video' : 'Mute video'
+      )
     }
 
     const updateTimeline = () => {
       const duration = Number.isFinite(video.duration) ? video.duration : 0
-      const current = Number.isFinite(video.currentTime) ? video.currentTime : 0
-      const percentage = duration > 0 ? (current / duration) * 100 : 0
+      const current = Number.isFinite(video.currentTime)
+        ? video.currentTime
+        : 0
+
+      const percentage =
+        duration > 0 ? (current / duration) * 100 : 0
 
       progress.value = String(percentage)
-      progress.style.setProperty('--film-progress', `${percentage}%`)
-      time.textContent = `${formatFilmTime(current)} / ${formatFilmTime(duration)}`
+      progress.style.setProperty(
+        '--film-progress',
+        `${percentage}%`
+      )
+
+      time.textContent =
+        `${formatFilmTime(current)} / ${formatFilmTime(duration)}`
     }
 
     const togglePlayback = () => {
       if (video.paused || video.ended) {
         const playPromise = video.play()
+
         if (playPromise instanceof Promise) {
           playPromise.catch(() => {})
         }
@@ -1311,7 +1330,9 @@ h2 {
     progress.addEventListener('input', () => {
       if (!Number.isFinite(video.duration) || video.duration <= 0) return
 
-      video.currentTime = (Number(progress.value) / 100) * video.duration
+      video.currentTime =
+        (Number(progress.value) / 100) * video.duration
+
       updateTimeline()
     })
 
@@ -1327,13 +1348,12 @@ h2 {
           return
         }
 
-        // Older Safari / iOS fallback. On iPhone this may use Apple's native
-        // fullscreen presentation, while inline playback keeps our custom bar.
+        // Older Safari / iOS fallback.
         if (typeof video.webkitEnterFullscreen === 'function') {
           video.webkitEnterFullscreen()
         }
       } catch {
-        // Fullscreen availability varies by Safari/iOS version. Playback remains usable.
+        // Playback remains usable if fullscreen isn't available.
       }
     })
 
@@ -1350,16 +1370,66 @@ h2 {
     updateTimeline()
   })
 
-  // Unified mobile project-image slideshows
+
+  /* --------------------------------------------------
+     PAUSE FILMS WHEN THEY LEAVE THE VIEWPORT
+  -------------------------------------------------- */
+
+  const filmVideos = document.querySelectorAll(
+    '[data-film-player] video'
+  )
+
+  const filmViewportObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) return
+
+      const video = entry.target
+
+      if (!(video instanceof HTMLVideoElement)) return
+
+      // Don't interfere with a video while its player is fullscreen.
+      if (
+        document.fullscreenElement &&
+        document.fullscreenElement.contains(video)
+      ) {
+        return
+      }
+
+      if (!video.paused) {
+        video.pause()
+      }
+    })
+  })
+
+  filmVideos.forEach((video) => {
+    filmViewportObserver.observe(video)
+  })
+
+
+  /* --------------------------------------------------
+     MOBILE IMAGE SLIDESHOWS
+  -------------------------------------------------- */
+
   const mobileSlideshows = document.querySelectorAll(
     '[data-mobile-image-slideshow]'
   )
 
   mobileSlideshows.forEach((slideshow) => {
-    const track = slideshow.querySelector('[data-mobile-image-track]')
-    const slides = Array.from(slideshow.querySelectorAll('.mobile-image-slide'))
-    const previousButton = slideshow.querySelector('[data-mobile-slide-prev]')
-    const nextButton = slideshow.querySelector('[data-mobile-slide-next]')
+    const track = slideshow.querySelector(
+      '[data-mobile-image-track]'
+    )
+
+    const slides = Array.from(
+      slideshow.querySelectorAll('.mobile-image-slide')
+    )
+
+    const previousButton = slideshow.querySelector(
+      '[data-mobile-slide-prev]'
+    )
+
+    const nextButton = slideshow.querySelector(
+      '[data-mobile-slide-next]'
+    )
 
     if (!(track instanceof HTMLElement)) return
     if (!(previousButton instanceof HTMLButtonElement)) return
@@ -1371,7 +1441,8 @@ h2 {
     let autoplayInterval = null
 
     const render = () => {
-      track.style.transform = `translateX(-${current * 100}%)`
+      track.style.transform =
+        `translateX(-${current * 100}%)`
     }
 
     const show = (index) => {
@@ -1380,17 +1451,24 @@ h2 {
     }
 
     const stopAutoplay = () => {
-      if (autoplayInterval) {
-        window.clearInterval(autoplayInterval)
-        autoplayInterval = null
-      }
+      if (!autoplayInterval) return
+
+      window.clearInterval(autoplayInterval)
+      autoplayInterval = null
     }
 
     const startAutoplay = () => {
       stopAutoplay()
 
       if (slides.length < 2) return
-      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
+      if (
+        window.matchMedia(
+          '(prefers-reduced-motion: reduce)'
+        ).matches
+      ) {
+        return
+      }
 
       autoplayInterval = window.setInterval(() => {
         show(current + 1)
@@ -1420,11 +1498,7 @@ h2 {
 
       if (Math.abs(distance) < 40) return
 
-      if (distance < 0) {
-        show(current + 1)
-      } else {
-        show(current - 1)
-      }
+      show(distance < 0 ? current + 1 : current - 1)
     })
 
     slideshow.addEventListener('pointercancel', () => {
@@ -1433,23 +1507,28 @@ h2 {
 
     render()
     startAutoplay()
-
-    const handleResize = () => {
-      render()
-    }
-
-    window.addEventListener('resize', handleResize)
   })
 
-  // Strong project scroll-in reveal
-  const revealProjects = Array.from(document.querySelectorAll('[data-project]'))
+
+  /* --------------------------------------------------
+     PROJECT REVEAL
+  -------------------------------------------------- */
+
+  const revealProjects = Array.from(
+    document.querySelectorAll('[data-project]')
+  )
+
   const projectsPanel = document.querySelector('.projects-view')
 
-  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  if (
+    !window.matchMedia(
+      '(prefers-reduced-motion: reduce)'
+    ).matches
+  ) {
     revealProjects.forEach((project, index) => {
       project.setAttribute('data-reveal-ready', '')
 
-      // Keep the first project present on initial load.
+      // First project is already present on page load.
       if (index === 0) {
         project.classList.add('is-revealed')
       }
@@ -1457,13 +1536,15 @@ h2 {
 
     if (projectsPanel instanceof Element) {
       const revealObserver = new IntersectionObserver(
-        (entries) => {
+        (entries, observer) => {
           entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              entry.target.classList.add('is-revealed')
-            } else {
-              entry.target.classList.remove('is-revealed')
-            }
+            if (!entry.isIntersecting) return
+
+            entry.target.classList.add('is-revealed')
+
+            // Reveal once. Don't reset it every time the
+            // user scrolls away and comes back.
+            observer.unobserve(entry.target)
           })
         },
         {
@@ -1473,13 +1554,24 @@ h2 {
         }
       )
 
-      revealProjects.forEach((project) => revealObserver.observe(project))
+      revealProjects.slice(1).forEach((project) => {
+        revealObserver.observe(project)
+      })
     }
   }
 
-  // Project tag filtering
-  const allProjects = Array.from(document.querySelectorAll('[data-project]'))
-  const allTagButtons = Array.from(document.querySelectorAll('[data-project-tag]'))
+
+  /* --------------------------------------------------
+     PROJECT TAG FILTERING
+  -------------------------------------------------- */
+
+  const allProjects = Array.from(
+    document.querySelectorAll('[data-project]')
+  )
+
+  const allTagButtons = Array.from(
+    document.querySelectorAll('[data-project-tag]')
+  )
 
   const normaliseTag = (tag) =>
     String(tag || '').trim().toLowerCase()
@@ -1488,7 +1580,9 @@ h2 {
   let filterTimer = null
 
   const projectHasTag = (project, tag) => {
-    const tags = String(project.getAttribute('data-project-tags') || '')
+    const tags = String(
+      project.getAttribute('data-project-tags') || ''
+    )
       .split('|')
       .map(normaliseTag)
       .filter(Boolean)
@@ -1499,10 +1593,14 @@ h2 {
   const updateTagButtons = () => {
     allTagButtons.forEach((button) => {
       if (!(button instanceof HTMLButtonElement)) return
+
       const buttonTag = normaliseTag(button.dataset.tag)
+
       button.setAttribute(
         'aria-pressed',
-        activeTag && buttonTag === activeTag ? 'true' : 'false'
+        activeTag && buttonTag === activeTag
+          ? 'true'
+          : 'false'
       )
     })
   }
@@ -1519,32 +1617,49 @@ h2 {
     window.history.replaceState({}, '', url)
   }
 
-  const applyProjectFilter = ({scrollToFirst = false} = {}) => {
-    if (filterTimer) window.clearTimeout(filterTimer)
+  const applyProjectFilter = ({
+    scrollToFirst = false
+  } = {}) => {
+    if (filterTimer) {
+      window.clearTimeout(filterTimer)
+    }
 
-    const matchingProjects = allProjects.filter((project) =>
-      activeTag ? projectHasTag(project, activeTag) : true
+    const matchingProjects = allProjects.filter(
+      (project) =>
+        activeTag
+          ? projectHasTag(project, activeTag)
+          : true
     )
 
     allProjects.forEach((project) => {
-      const shouldShow = matchingProjects.includes(project)
+      const shouldShow =
+        matchingProjects.includes(project)
 
       if (shouldShow) {
         project.hidden = false
+
         requestAnimationFrame(() => {
-          project.classList.remove('is-filtering-out')
+          project.classList.remove(
+            'is-filtering-out'
+          )
         })
       } else {
-        project.classList.add('is-filtering-out')
+        project.classList.add(
+          'is-filtering-out'
+        )
       }
     })
 
     filterTimer = window.setTimeout(() => {
       allProjects.forEach((project) => {
-        project.hidden = !matchingProjects.includes(project)
+        project.hidden =
+          !matchingProjects.includes(project)
       })
 
-      if (scrollToFirst && matchingProjects.length) {
+      if (
+        scrollToFirst &&
+        matchingProjects.length
+      ) {
         matchingProjects[0].scrollIntoView({
           behavior: 'smooth',
           block: 'start',
@@ -1560,21 +1675,33 @@ h2 {
     if (!(button instanceof HTMLButtonElement)) return
 
     button.addEventListener('click', () => {
-      const clickedTag = normaliseTag(button.dataset.tag)
+      const clickedTag =
+        normaliseTag(button.dataset.tag)
+
       if (!clickedTag) return
 
-      activeTag = activeTag === clickedTag ? null : clickedTag
-      applyProjectFilter({scrollToFirst: true})
+      activeTag =
+        activeTag === clickedTag
+          ? null
+          : clickedTag
+
+      applyProjectFilter({
+        scrollToFirst: true
+      })
     })
   })
 
   const tagFromUrl = normaliseTag(
-    new URL(window.location.href).searchParams.get('tag')
+    new URL(window.location.href)
+      .searchParams
+      .get('tag')
   )
 
   if (tagFromUrl) {
     const tagExists = allTagButtons.some(
-      (button) => normaliseTag(button.dataset.tag) === tagFromUrl
+      (button) =>
+        normaliseTag(button.dataset.tag) ===
+        tagFromUrl
     )
 
     if (tagExists) {
@@ -1583,105 +1710,154 @@ h2 {
     }
   }
 
-  // Internal links from description copy to another project.
-  // If a tag filter is active, clear it first so the target project is visible.
-  document.querySelectorAll('[data-project-link]').forEach((link) => {
-    if (!(link instanceof HTMLAnchorElement)) return
 
-    link.addEventListener('click', (event) => {
-      const slug = link.dataset.projectLink
-      if (!slug) return
+  /* --------------------------------------------------
+     INTERNAL PROJECT LINKS
+  -------------------------------------------------- */
 
-      const target = document.getElementById(`project-${slug}`)
-      if (!(target instanceof HTMLElement)) return
+  document
+    .querySelectorAll('[data-project-link]')
+    .forEach((link) => {
+      if (!(link instanceof HTMLAnchorElement)) return
 
-      event.preventDefault()
+      link.addEventListener('click', (event) => {
+        const slug = link.dataset.projectLink
+        if (!slug) return
 
-      const scrollToProject = () => {
-        target.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start',
-        })
+        const target = document.getElementById(
+          `project-${slug}`
+        )
 
-        const url = new URL(window.location.href)
-        url.hash = `project-${slug}`
-        window.history.replaceState({}, '', url)
-      }
+        if (!(target instanceof HTMLElement)) return
 
-      if (activeTag) {
-        activeTag = null
-        applyProjectFilter()
-        window.setTimeout(scrollToProject, 220)
-      } else {
-        scrollToProject()
-      }
+        event.preventDefault()
+
+        const scrollToProject = () => {
+          target.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start',
+          })
+
+          const url = new URL(
+            window.location.href
+          )
+
+          url.hash = `project-${slug}`
+
+          window.history.replaceState(
+            {},
+            '',
+            url
+          )
+        }
+
+        if (activeTag) {
+          activeTag = null
+          applyProjectFilter()
+
+          window.setTimeout(
+            scrollToProject,
+            220
+          )
+        } else {
+          scrollToProject()
+        }
+      })
     })
-  })
 
-  // Read more / read less
-  const descriptions = document.querySelectorAll('[data-project-description]')
 
-  function closeDescription(description) {
-    const short = description.querySelector('[data-short-description]')
-    const long = description.querySelector('[data-long-description]')
-    const button = description.querySelector('[data-read-more]')
+  /* --------------------------------------------------
+     READ MORE / READ LESS
+  -------------------------------------------------- */
+
+  const descriptions = document.querySelectorAll(
+    '[data-project-description]'
+  )
+
+  const setDescriptionExpanded = (
+    description,
+    expanded
+  ) => {
+    const short = description.querySelector(
+      '[data-short-description]'
+    )
+
+    const long = description.querySelector(
+      '[data-long-description]'
+    )
+
+    const button = description.querySelector(
+      '[data-read-more]'
+    )
 
     if (!(short instanceof HTMLElement)) return
     if (!(long instanceof HTMLElement)) return
     if (!(button instanceof HTMLButtonElement)) return
 
-    short.hidden = false
-    long.hidden = true
-    button.textContent = 'Read more'
-    button.setAttribute('aria-expanded', 'false')
-    description.removeAttribute('data-expanded')
-  }
+    short.hidden = expanded
+    long.hidden = !expanded
 
-  function openDescription(description) {
-    const short = description.querySelector('[data-short-description]')
-    const long = description.querySelector('[data-long-description]')
-    const button = description.querySelector('[data-read-more]')
+    button.textContent =
+      expanded ? 'Read less' : 'Read more'
 
-    if (!(short instanceof HTMLElement)) return
-    if (!(long instanceof HTMLElement)) return
-    if (!(button instanceof HTMLButtonElement)) return
+    button.setAttribute(
+      'aria-expanded',
+      String(expanded)
+    )
 
-    short.hidden = true
-    long.hidden = false
-    button.textContent = 'Read less'
-    button.setAttribute('aria-expanded', 'true')
-    description.setAttribute('data-expanded', 'true')
+    if (expanded) {
+      description.setAttribute(
+        'data-expanded',
+        'true'
+      )
+    } else {
+      description.removeAttribute(
+        'data-expanded'
+      )
+    }
   }
 
   descriptions.forEach((description) => {
-    const button = description.querySelector('[data-read-more]')
+    const button = description.querySelector(
+      '[data-read-more]'
+    )
 
     if (!(button instanceof HTMLButtonElement)) return
 
     button.addEventListener('click', () => {
-      const isExpanded = description.hasAttribute('data-expanded')
+      const expanded =
+        description.hasAttribute(
+          'data-expanded'
+        )
 
-      if (isExpanded) {
-        closeDescription(description)
-      } else {
-        openDescription(description)
-      }
+      setDescriptionExpanded(
+        description,
+        !expanded
+      )
     })
   })
 
   document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape') return
 
-    const expandedDescription = document.querySelector(
-      '[data-project-description][data-expanded]'
-    )
+    const expandedDescription =
+      document.querySelector(
+        '[data-project-description][data-expanded]'
+      )
 
-    if (!expandedDescription) return
+    if (!(expandedDescription instanceof HTMLElement)) {
+      return
+    }
 
     const positionBeforeCollapse =
-      expandedDescription.getBoundingClientRect().top
+      expandedDescription
+        .getBoundingClientRect()
+        .top
 
-    closeDescription(expandedDescription)
+    setDescriptionExpanded(
+      expandedDescription,
+      false
+    )
 
     if (positionBeforeCollapse < 0) {
       expandedDescription.scrollIntoView({
@@ -1691,16 +1867,33 @@ h2 {
     }
   })
 
-  // Individual project media slideshows
-  const slideshows = document.querySelectorAll('[data-project-slideshow]')
+
+  /* --------------------------------------------------
+     DESKTOP PROJECT SLIDESHOWS
+  -------------------------------------------------- */
+
+  const slideshows = document.querySelectorAll(
+    '[data-project-slideshow]'
+  )
 
   slideshows.forEach((slideshow) => {
-    const track = slideshow.querySelector('[data-slideshow-track]')
-    const slides = Array.from(
-      slideshow.querySelectorAll('.slideshow-slide')
+    const track = slideshow.querySelector(
+      '[data-slideshow-track]'
     )
-    const previousButton = slideshow.querySelector('[data-slideshow-prev]')
-    const nextButton = slideshow.querySelector('[data-slideshow-next]')
+
+    const slides = Array.from(
+      slideshow.querySelectorAll(
+        '.slideshow-slide'
+      )
+    )
+
+    const previousButton = slideshow.querySelector(
+      '[data-slideshow-prev]'
+    )
+
+    const nextButton = slideshow.querySelector(
+      '[data-slideshow-next]'
+    )
 
     if (!(track instanceof HTMLElement)) return
     if (!(previousButton instanceof HTMLButtonElement)) return
@@ -1710,61 +1903,78 @@ h2 {
     let current = 0
     let interval
 
-    function renderSlide() {
-      track.style.transform = `translateX(-${current * 100}%)`
+    const render = () => {
+      track.style.transform =
+        `translateX(-${current * 100}%)`
     }
 
-    function showSlide(index) {
-      current = (index + slides.length) % slides.length
-      renderSlide()
+    const show = (index) => {
+      current =
+        (index + slides.length) %
+        slides.length
+
+      render()
     }
 
-    function nextSlide() {
-      showSlide(current + 1)
+    const stopAutoplay = () => {
+      if (!interval) return
+
+      window.clearInterval(interval)
+      interval = undefined
     }
 
-    function previousSlide() {
-      showSlide(current - 1)
-    }
-
-    function startAutoplay() {
-      interval = window.setInterval(nextSlide, 4000)
-    }
-
-    function stopAutoplay() {
-      if (interval) {
-        window.clearInterval(interval)
-        interval = undefined
+    const startAutoplay = () => {
+      if (
+        window.matchMedia(
+          '(prefers-reduced-motion: reduce)'
+        ).matches
+      ) {
+        return
       }
+
+      interval = window.setInterval(() => {
+        show(current + 1)
+      }, 4000)
     }
 
-    previousButton.addEventListener('click', (event) => {
-      event.stopPropagation()
-      stopAutoplay()
-      previousSlide()
-    })
+    previousButton.addEventListener(
+      'click',
+      (event) => {
+        event.stopPropagation()
+        stopAutoplay()
+        show(current - 1)
+      }
+    )
 
-    nextButton.addEventListener('click', (event) => {
-      event.stopPropagation()
-      stopAutoplay()
-      nextSlide()
-    })
+    nextButton.addEventListener(
+      'click',
+      (event) => {
+        event.stopPropagation()
+        stopAutoplay()
+        show(current + 1)
+      }
+    )
 
-    renderSlide()
+    render()
     startAutoplay()
   })
 
-  // Arrow-key navigation between projects.
-  // Normal scrolling is untouched; this only responds to deliberate ↑ / ↓ presses.
-  const getVisibleProjectSections = () =>
-    Array.from(document.querySelectorAll('[data-project]')).filter(
-      (project) => !project.hidden
-    )
 
-  function isTypingOrUsingControl() {
+  /* --------------------------------------------------
+     ARROW-KEY PROJECT NAVIGATION
+  -------------------------------------------------- */
+
+  const getVisibleProjectSections = () =>
+    Array.from(
+      document.querySelectorAll('[data-project]')
+    ).filter((project) => !project.hidden)
+
+  const isTypingOrUsingControl = () => {
     const active = document.activeElement
 
-    if (!(active instanceof HTMLElement)) return false
+    if (!(active instanceof HTMLElement)) {
+      return false
+    }
 
     return Boolean(
       active.closest(
@@ -1773,55 +1983,105 @@ h2 {
     )
   }
 
-  function getCurrentProjectIndex(projectSections) {
-    const marker = window.innerHeight * 0.35
+  const getCurrentProjectIndex = (
+    projectSections
+  ) => {
+    const marker =
+      window.innerHeight * 0.35
 
     let bestIndex = 0
-    let bestDistance = Number.POSITIVE_INFINITY
+    let bestDistance =
+      Number.POSITIVE_INFINITY
 
-    projectSections.forEach((project, index) => {
-      const rect = project.getBoundingClientRect()
+    projectSections.forEach(
+      (project, index) => {
+        const rect =
+          project.getBoundingClientRect()
 
-      if (rect.top <= marker && rect.bottom > marker) {
-        bestIndex = index
-        bestDistance = 0
-        return
+        if (
+          rect.top <= marker &&
+          rect.bottom > marker
+        ) {
+          bestIndex = index
+          bestDistance = 0
+          return
+        }
+
+        const distance =
+          Math.abs(rect.top - marker)
+
+        if (distance < bestDistance) {
+          bestDistance = distance
+          bestIndex = index
+        }
       }
-
-      const distance = Math.abs(rect.top - marker)
-
-      if (distance < bestDistance) {
-        bestDistance = distance
-        bestIndex = index
-      }
-    })
+    )
 
     return bestIndex
   }
 
-  document.addEventListener('keydown', (event) => {
-    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
-    if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return
-    if (isTypingOrUsingControl()) return
-    if (!document.documentElement.classList.contains('view-home')) return
-    const projectSections = getVisibleProjectSections()
+  document.addEventListener(
+    'keydown',
+    (event) => {
+      if (
+        event.key !== 'ArrowDown' &&
+        event.key !== 'ArrowUp'
+      ) {
+        return
+      }
 
-    if (!projectSections.length) return
+      if (
+        event.metaKey ||
+        event.ctrlKey ||
+        event.altKey ||
+        event.shiftKey
+      ) {
+        return
+      }
 
-    const currentIndex = getCurrentProjectIndex(projectSections)
+      if (isTypingOrUsingControl()) return
 
-    const targetIndex =
-      event.key === 'ArrowDown'
-        ? Math.min(currentIndex + 1, projectSections.length - 1)
-        : Math.max(currentIndex - 1, 0)
+      if (
+        !document.documentElement
+          .classList
+          .contains('view-home')
+      ) {
+        return
+      }
 
-    if (targetIndex === currentIndex) return
+      const projectSections =
+        getVisibleProjectSections()
 
-    event.preventDefault()
+      if (!projectSections.length) return
 
-    projectSections[targetIndex].scrollIntoView({
-      behavior: 'smooth',
-      block: 'start',
-    })
-  })
+      const currentIndex =
+        getCurrentProjectIndex(
+          projectSections
+        )
+
+      const targetIndex =
+        event.key === 'ArrowDown'
+          ? Math.min(
+              currentIndex + 1,
+              projectSections.length - 1
+            )
+          : Math.max(
+              currentIndex - 1,
+              0
+            )
+
+      if (targetIndex === currentIndex) {
+        return
+      }
+
+      event.preventDefault()
+
+      projectSections[
+        targetIndex
+      ].scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      })
+    }
+  )
 </script>
