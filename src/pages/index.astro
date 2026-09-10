@@ -1,7 +1,6 @@
 ---
 import { sanityClient } from 'sanity:client'
 import Layout from '../layouts/Layout.astro'
-import 'plyr/dist/plyr.css'
 
 const imageWidths = [480, 768, 1024, 1440, 1920, 2400]
 
@@ -229,15 +228,56 @@ const projects = await sanityClient.fetch(`
                           </video>
                         </div>
                       ) : (
-                        <div class="film-video">
+                        <div class="film-video" data-film-player>
                           <video
-                            controls
                             playsinline
                             preload="metadata"
                             poster={sanityImage(item.poster?.asset?.url, 1600)}
                           >
                             <source src={item.video.asset.url} />
                           </video>
+
+                          <div class="film-controls" data-film-controls>
+                            <button
+                              class="film-control film-play"
+                              type="button"
+                              data-film-play
+                              aria-label="Play video"
+                            >
+                              PLAY
+                            </button>
+
+                            <input
+                              class="film-progress"
+                              type="range"
+                              min="0"
+                              max="100"
+                              step="0.01"
+                              value="0"
+                              data-film-progress
+                              aria-label="Video progress"
+                            />
+
+                            <span class="film-time" data-film-time>00:00 / 00:00</span>
+
+                            <button
+                              class="film-control film-mute"
+                              type="button"
+                              data-film-mute
+                              aria-label="Mute video"
+                            >
+                              MUTE
+                            </button>
+
+                            <button
+                              class="film-control film-fullscreen"
+                              type="button"
+                              data-film-fullscreen
+                              aria-label="Enter fullscreen"
+                            >
+                              FULL
+                            </button>
+                          </div>
                         </div>
                       )
                     ) : item.mediaType === 'gallery' && item.galleryImages?.length ? (
@@ -340,15 +380,56 @@ const projects = await sanityClient.fetch(`
                             </video>
                           </div>
                         ) : (
-                          <div class="film-video">
+                          <div class="film-video" data-film-player>
                             <video
-                              controls
                               playsinline
                               preload="metadata"
                               poster={sanityImage(item.poster?.asset?.url, 1600)}
                             >
                               <source src={item.video.asset.url} />
                             </video>
+
+                            <div class="film-controls" data-film-controls>
+                              <button
+                                class="film-control film-play"
+                                type="button"
+                                data-film-play
+                                aria-label="Play video"
+                              >
+                                PLAY
+                              </button>
+
+                              <input
+                                class="film-progress"
+                                type="range"
+                                min="0"
+                                max="100"
+                                step="0.01"
+                                value="0"
+                                data-film-progress
+                                aria-label="Video progress"
+                              />
+
+                              <span class="film-time" data-film-time>00:00 / 00:00</span>
+
+                              <button
+                                class="film-control film-mute"
+                                type="button"
+                                data-film-mute
+                                aria-label="Mute video"
+                              >
+                                MUTE
+                              </button>
+
+                              <button
+                                class="film-control film-fullscreen"
+                                type="button"
+                                data-film-fullscreen
+                                aria-label="Enter fullscreen"
+                              >
+                                FULL
+                              </button>
+                            </div>
                           </div>
                         )
                       }
@@ -820,9 +901,17 @@ line-height: var(--project-body-line-height);
   .film-video {
     position: relative;
     width: 100%;
-    overflow: hidden;
     background: var(--black);
   }
+
+  .custom-video-player {
+    overflow: hidden;
+  }
+
+.film-video {
+  position: relative;
+  overflow: hidden;
+}
 
   .custom-video-player video,
   .film-video video {
@@ -831,72 +920,164 @@ line-height: var(--project-body-line-height);
     height: auto;
   }
 
+  .film-video video {
+    cursor: pointer;
+  }
+
   .loop-video video {
     pointer-events: none;
   }
 
-  /* Plyr — Film videos only. Controls are deliberately always visible. */
-  :global(.film-video .plyr) {
-    --plyr-color-main: #fff;
-    --plyr-video-background: #000;
-    --plyr-video-control-color: #fff;
-    --plyr-video-control-background-hover: rgba(255, 255, 255, 0.12);
-    --plyr-range-fill-background: #fff;
-    --plyr-range-thumb-background: #fff;
-    --plyr-range-track-height: 2px;
-    --plyr-range-thumb-height: 10px;
+  /*
+    Film controls deliberately sit BELOW the video in normal document flow.
+    Nothing is layered over the <video>, avoiding Safari/WebKit's video-overlay
+    compositing behaviour entirely.
+  */
+  .film-controls {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
 
-    width: 100%;
-    font-family: 'Aeonik Fono', monospace;
-  }
+  display: grid;
+  grid-template-columns: auto minmax(70px, 1fr) auto auto auto;
+  align-items: center;
+  gap: 12px;
 
-  :global(.film-video .plyr__video-wrapper),
-  :global(.film-video .plyr video) {
-    width: 100%;
-  }
+  padding: 18px 12px 10px;
 
-  :global(.film-video .plyr__controls),
-  :global(.film-video .plyr--hide-controls .plyr__controls) {
-    padding: 24px 16px 14px;
-    background: linear-gradient(
-      to top,
-      rgba(0, 0, 0, 0.72),
-      rgba(0, 0, 0, 0)
-    );
-    opacity: 1 !important;
-    transform: none !important;
-    pointer-events: auto !important;
-  }
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.8),
+    transparent
+  );
 
-  :global(.film-video .plyr__control) {
-    border-radius: 50%;
-  }
+  color: var(--white);
+  font-size: 9px;
+  line-height: 1;
+  letter-spacing: 0.08em;
 
-  :global(.film-video .plyr__control:hover),
-  :global(.film-video .plyr__control:focus-visible) {
-    background: rgba(255, 255, 255, 0.12);
-  }
+  opacity: 0.7;
+  transition: opacity 160ms ease;
+}
 
-  :global(.film-video .plyr__control--overlaid) {
-    width: 58px;
-    height: 58px;
-    border: 1px solid rgba(255, 255, 255, 0.72);
-    background: rgba(0, 0, 0, 0.22);
-  }
+.film-video:hover .film-controls,
+.film-video:focus-within .film-controls {
+  opacity: 1;
+}
 
-  :global(.film-video .plyr__control--overlaid:hover),
-  :global(.film-video .plyr__control--overlaid:focus-visible) {
-    background: rgba(0, 0, 0, 0.34);
-  }
+.film-control {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
 
-  :global(.film-video .plyr__time) {
-    font-size: 10px;
-    line-height: 1;
-  }
+.film-control:hover,
+.film-control:focus-visible {
+  color: #999;
+}
 
-  :global(.film-video .plyr__progress input[type='range']),
-  :global(.film-video .plyr__volume input[type='range']) {
-    cursor: pointer;
+.film-control:focus-visible,
+.film-progress:focus-visible {
+  outline: 1px solid currentColor;
+  outline-offset: 4px;
+}
+
+.film-time {
+  white-space: nowrap;
+  color: #aaa;
+}
+
+.film-progress {
+  --film-progress: 0%;
+
+  width: 100%;
+  height: 12px;
+  margin: 0;
+
+  border: 0;
+  background: linear-gradient(
+    to right,
+    var(--white) 0%,
+    var(--white) var(--film-progress),
+    #444 var(--film-progress),
+    #444 100%
+  );
+  background-size: 100% 1px;
+  background-position: center;
+  background-repeat: no-repeat;
+
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.film-progress::-webkit-slider-runnable-track {
+  height: 12px;
+  background: transparent;
+}
+
+.film-progress::-webkit-slider-thumb {
+  width: 8px;
+  height: 8px;
+  margin-top: 2px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--white);
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.film-progress::-moz-range-track {
+  height: 1px;
+  background: transparent;
+}
+
+.film-progress::-moz-range-progress {
+  height: 1px;
+  background: var(--white);
+}
+
+.film-progress::-moz-range-thumb {
+  width: 8px;
+  height: 8px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--white);
+}
+
+.film-video:fullscreen,
+.film-video:-webkit-full-screen {
+  width: 100%;
+  height: 100%;
+  background: #000;
+}
+
+.film-video:fullscreen video,
+.film-video:-webkit-full-screen video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+  @media (max-width: 700px) {
+    .film-controls {
+      grid-template-columns: auto minmax(50px, 1fr) auto auto;
+      gap: 9px;
+      padding: 10px;
+      font-size: 8px;
+    }
+
+    .film-time {
+      display: none;
+    }
   }
 
   @media (max-width: 700px) {
@@ -1055,75 +1236,118 @@ h2 {
 </style>
 
 <script>
-  import Plyr from 'plyr'
+  // Film videos use a small custom control bar BELOW the video.
+  // There is no visual overlay on the <video>, specifically to avoid Safari's
+  // video compositing/repaint problems.
+  const filmPlayers = document.querySelectorAll('[data-film-player]')
 
-  // Film videos use Plyr. Loop videos remain untouched.
-  // Only initialise a film when its desktop/mobile copy has a real layout size.
-  const filmWrappers = document.querySelectorAll('.film-video')
+  const formatFilmTime = (seconds) => {
+    if (!Number.isFinite(seconds) || seconds < 0) return '00:00'
 
-  const initialiseFilm = (wrapper) => {
-    if (!(wrapper instanceof HTMLElement)) return
-    if (wrapper.dataset.plyrInitialised === 'true') return
+    const totalSeconds = Math.floor(seconds)
+    const minutes = Math.floor(totalSeconds / 60)
+    const remainingSeconds = totalSeconds % 60
 
-    // Do not initialise the hidden desktop/mobile duplicate.
-    if (wrapper.offsetWidth === 0 || wrapper.offsetHeight === 0) return
+    return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`
+  }
 
-    const video = wrapper.querySelector('video')
+  filmPlayers.forEach((player) => {
+    if (!(player instanceof HTMLElement)) return
+
+    const video = player.querySelector('video')
+    const playButton = player.querySelector('[data-film-play]')
+    const progress = player.querySelector('[data-film-progress]')
+    const time = player.querySelector('[data-film-time]')
+    const muteButton = player.querySelector('[data-film-mute]')
+    const fullscreenButton = player.querySelector('[data-film-fullscreen]')
+
     if (!(video instanceof HTMLVideoElement)) return
+    if (!(playButton instanceof HTMLButtonElement)) return
+    if (!(progress instanceof HTMLInputElement)) return
+    if (!(time instanceof HTMLElement)) return
+    if (!(muteButton instanceof HTMLButtonElement)) return
+    if (!(fullscreenButton instanceof HTMLButtonElement)) return
 
-    wrapper.dataset.plyrInitialised = 'true'
+    const updatePlayState = () => {
+      const isPlaying = !video.paused && !video.ended
+      playButton.textContent = isPlaying ? 'PAUSE' : 'PLAY'
+      playButton.setAttribute('aria-label', isPlaying ? 'Pause video' : 'Play video')
+    }
 
-    const player = new Plyr(video, {
-      controls: [
-        'play-large',
-        'play',
-        'progress',
-        'current-time',
-        'mute',
-        'fullscreen',
-      ],
-      hideControls: false,
-      clickToPlay: true,
-      keyboard: {
-        focused: true,
-        global: false,
-      },
-      fullscreen: {
-        enabled: true,
-        fallback: true,
-        iosNative: true,
-      },
+    const updateMuteState = () => {
+      const isMuted = video.muted || video.volume === 0
+      muteButton.textContent = isMuted ? 'SOUND' : 'MUTE'
+      muteButton.setAttribute('aria-label', isMuted ? 'Unmute video' : 'Mute video')
+    }
+
+    const updateTimeline = () => {
+      const duration = Number.isFinite(video.duration) ? video.duration : 0
+      const current = Number.isFinite(video.currentTime) ? video.currentTime : 0
+      const percentage = duration > 0 ? (current / duration) * 100 : 0
+
+      progress.value = String(percentage)
+      progress.style.setProperty('--film-progress', `${percentage}%`)
+      time.textContent = `${formatFilmTime(current)} / ${formatFilmTime(duration)}`
+    }
+
+    const togglePlayback = () => {
+      if (video.paused || video.ended) {
+        const playPromise = video.play()
+        if (playPromise instanceof Promise) {
+          playPromise.catch(() => {})
+        }
+      } else {
+        video.pause()
+      }
+    }
+
+    playButton.addEventListener('click', togglePlayback)
+    video.addEventListener('click', togglePlayback)
+
+    muteButton.addEventListener('click', () => {
+      video.muted = !video.muted
     })
 
-    player.on('ready', () => {
-      // Give Plyr two paint frames, then trigger the geometry refresh that
-      // previously only happened after manually resizing the browser.
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          window.dispatchEvent(new Event('resize'))
-        })
-      })
+    progress.addEventListener('input', () => {
+      if (!Number.isFinite(video.duration) || video.duration <= 0) return
+
+      video.currentTime = (Number(progress.value) / 100) * video.duration
+      updateTimeline()
     })
-  }
 
-  const initialiseVisibleFilms = () => {
-    filmWrappers.forEach(initialiseFilm)
-  }
+    fullscreenButton.addEventListener('click', async () => {
+      try {
+        if (document.fullscreenElement) {
+          await document.exitFullscreen()
+          return
+        }
 
-  // Wait for the full page layout before creating the visible players.
-  if (document.readyState === 'complete') {
-    requestAnimationFrame(initialiseVisibleFilms)
-  } else {
-    window.addEventListener('load', initialiseVisibleFilms, { once: true })
-  }
+        if (player.requestFullscreen) {
+          await player.requestFullscreen()
+          return
+        }
 
-  // If the breakpoint changes, initialise the copy that has just become visible.
-  const filmResizeObserver = new ResizeObserver(() => {
-    initialiseVisibleFilms()
-  })
+        // Older Safari / iOS fallback. On iPhone this may use Apple's native
+        // fullscreen presentation, while inline playback keeps our custom bar.
+        if (typeof video.webkitEnterFullscreen === 'function') {
+          video.webkitEnterFullscreen()
+        }
+      } catch {
+        // Fullscreen availability varies by Safari/iOS version. Playback remains usable.
+      }
+    })
 
-  filmWrappers.forEach((wrapper) => {
-    filmResizeObserver.observe(wrapper)
+    video.addEventListener('play', updatePlayState)
+    video.addEventListener('pause', updatePlayState)
+    video.addEventListener('ended', updatePlayState)
+    video.addEventListener('volumechange', updateMuteState)
+    video.addEventListener('loadedmetadata', updateTimeline)
+    video.addEventListener('durationchange', updateTimeline)
+    video.addEventListener('timeupdate', updateTimeline)
+
+    updatePlayState()
+    updateMuteState()
+    updateTimeline()
   })
 
   // Unified mobile project-image slideshows
