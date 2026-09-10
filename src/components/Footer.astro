@@ -3,62 +3,58 @@ const year = new Date().getFullYear()
 ---
 
 <footer class="site-footer">
-  <div
-    class="footer-mark"
-    role="img"
-    aria-label="Michael Thomason"
-  ></div>
+  <div class="footer-meta">
+    <span>© {year} Michael Thomason</span>
 
-<div class="footer-meta">
-  <span>© {year} Michael Thomason</span>
+    <img
+      class="footer-end"
+      src="/the-end.png"
+      alt="The End"
+    />
 
-  <img
-    class="footer-end"
-    src="/the-end.png"
-    alt="The End"
-  />
-
-  <div class="footer-links">
-    <a href="mailto:hello@thebookofmt.com">Email</a>
-    <a href="https://www.linkedin.com/" target="_blank" rel="noreferrer">LinkedIn</a>
+    <div class="footer-links">
+      <a href="mailto:michaelthomason@me.com">Email</a>
+      <a
+        href="https://www.linkedin.com/"
+        target="_blank"
+        rel="noreferrer"
+      >
+        LinkedIn
+      </a>
+    </div>
   </div>
-</div>
 </footer>
 
 <style>
-.site-footer {
-  width: 100%;
-  padding: var(--footer-top-space) var(--footer-gutter) var(--footer-bottom-space);
-  color: #888;
-}
-
-.footer-mark {
-  width: 100%;
-  height: 90px;
-
-  background: currentColor;
-
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-
-  -webkit-mask-position: center;
-  mask-position: center;
-
-  -webkit-mask-size: contain;
-  mask-size: contain;
-}
+  .site-footer {
+    width: 100%;
+    padding:
+      var(--footer-top-space)
+      var(--footer-gutter)
+      var(--footer-bottom-space);
+    color: #888;
+  }
 
   .footer-meta {
+    position: relative;
     display: flex;
     justify-content: space-between;
     gap: 24px;
-    margin-top: 20px;
 
     font-family: var(--font-mono);
     font-size: 10px;
     line-height: 1.4;
     letter-spacing: 0.08em;
     text-transform: uppercase;
+  }
+
+  .footer-end {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 90px;
+    height: auto;
+    transform: translate(-50%, -50%);
   }
 
   .footer-links {
@@ -77,31 +73,17 @@ const year = new Date().getFullYear()
     text-underline-offset: 3px;
   }
 
-  .footer-meta {
-  position: relative;
-}
-
-.footer-end {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 90px;
-  height: auto;
-  transform: translate(-50%, -50%);
-}
-
   @media (max-width: 700px) {
     .site-footer {
-      padding: var(--footer-top-space-mobile) var(--footer-gutter-mobile) var(--footer-bottom-space-mobile);
+      padding:
+        var(--footer-top-space-mobile)
+        var(--footer-gutter-mobile)
+        var(--footer-bottom-space-mobile);
     }
 
-.footer-mark {
-    height: 60px;
-  }
-
- .footer-meta > span,
-.footer-links {
-  display: none;
-}
+    .footer-meta > span,
+    .footer-links {
+      display: none;
+    }
   }
 </style>
