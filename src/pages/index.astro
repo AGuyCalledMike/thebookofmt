@@ -492,7 +492,10 @@ const projects = await sanityClient.fetch(`
 
             <div class="meta">
               <p>Brand: {project.brand}</p>
-              <p>Project: {project.projectName}</p>
+              <p class="project-meta">
+  <span>Project:</span>
+  <span>{project.projectName}</span>
+</p>
               <p class="secondary-meta">Role: {project.role}</p>
               <p class="secondary-meta">Agency: {project.agency}</p>
             </div>
@@ -1181,10 +1184,11 @@ h2 {
   scroll-snap-align: start;
 }
 
-.meta > p:nth-child(2) {
-  padding-left: -7ch;
-  text-indent: 7ch;
-  transform: translateX(-7ch);
+.project-meta {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.5ch;
+  align-items: start;
 }
 
 .secondary-meta {
