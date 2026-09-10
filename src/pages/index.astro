@@ -218,11 +218,10 @@ const projects = await sanityClient.fetch(`
                       item.videoMode === 'loop' ? (
                         <div class="custom-video-player loop-video">
                           <video
-                            autoplay
                             muted
                             loop
                             playsinline
-                            preload="auto"
+                            preload="none"
                           >
                             <source src={item.video.asset.url} />
                           </video>
@@ -231,7 +230,7 @@ const projects = await sanityClient.fetch(`
                         <div class="film-video" data-film-player>
                           <video
                             playsinline
-                            preload="metadata"
+                            preload="none"
                             poster={sanityImage(item.poster?.asset?.url, 1600)}
                           >
                             <source src={item.video.asset.url} />
@@ -284,7 +283,8 @@ const projects = await sanityClient.fetch(`
                               width={image.asset.metadata?.dimensions?.width}
                               height={image.asset.metadata?.dimensions?.height}
                               alt={image.alt || image.asset.originalFilename || ''}
-                              decoding="async"
+                              loading="lazy"
+                        decoding="async"
                             />
                           ) : null
                         ))}
@@ -307,7 +307,8 @@ const projects = await sanityClient.fetch(`
                                   width={slide.asset?.metadata?.dimensions?.width}
                                   height={slide.asset?.metadata?.dimensions?.height}
                                   alt={slide.alt || ''}
-                                  decoding="async"
+                                  loading="lazy"
+                        decoding="async"
                                 />
                               </div>
                             ))}
@@ -342,6 +343,7 @@ const projects = await sanityClient.fetch(`
                         width={item.image.asset.metadata?.dimensions?.width}
                         height={item.image.asset.metadata?.dimensions?.height}
                         alt={item.alt || ''}
+                        loading="lazy"
                         decoding="async"
                       />
                     ) : null
@@ -360,11 +362,10 @@ const projects = await sanityClient.fetch(`
                         item.videoMode === 'loop' ? (
                           <div class="custom-video-player loop-video">
                             <video
-                              autoplay
                               muted
                               loop
                               playsinline
-                              preload="auto"
+                              preload="none"
                               poster={sanityImage(item.poster?.asset?.url, 1600)}
                             >
                               <source src={item.video.asset.url} />
@@ -374,7 +375,7 @@ const projects = await sanityClient.fetch(`
                           <div class="film-video" data-film-player>
                             <video
                               playsinline
-                              preload="metadata"
+                              preload="none"
                               poster={sanityImage(item.poster?.asset?.url, 1600)}
                             >
                               <source src={item.video.asset.url} />
@@ -443,7 +444,8 @@ const projects = await sanityClient.fetch(`
                               width={image.width}
                               height={image.height}
                               alt={image.alt}
-                              decoding="async"
+                              loading="lazy"
+                        decoding="async"
                               draggable="false"
                             />
                           </div>
@@ -477,6 +479,7 @@ const projects = await sanityClient.fetch(`
                         width={mobileImages[0].width}
                         height={mobileImages[0].height}
                         alt={mobileImages[0].alt}
+                        loading="lazy"
                         decoding="async"
                       />
                     </div>
@@ -1295,6 +1298,27 @@ h2 {
     updateTimeline()
   })
 
+  // Load Film metadata shortly before a film reaches the viewport.
+  // Hidden desktop/mobile duplicates stay unloaded.
+  const filmPreloadObserver = new IntersectionObserver(
+    (entries, observer) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return
+
+        const video = entry.target
+
+        if (video instanceof HTMLVideoElement) {
+          video.preload = 'metadata'
+          video.load()
+          observer.unobserve(video)
+        }
+      })
+    },
+    {
+      rootMargin: '500px 0px',
+    }
+  )
+
   // Pause Film videos when they are completely outside the viewport.
   // Returning to them does not automatically resume playback.
   const filmViewportObserver = new IntersectionObserver((entries) => {
@@ -1310,7 +1334,58 @@ h2 {
   })
 
   document.querySelectorAll('[data-film-player] video').forEach((video) => {
+    filmPreloadObserver.observe(video)
     filmViewportObserver.observe(video)
+  })
+
+  // Loop videos load shortly before view, play only while visible,
+  // and pause once they leave the viewport.
+  const loopVideos = document.querySelectorAll('.loop-video video')
+
+  const loopPreloadObserver = new IntersectionObserver(
+    (entries, observer) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return
+
+        const video = entry.target
+
+        if (video instanceof HTMLVideoElement) {
+          video.preload = 'auto'
+          video.load()
+          observer.unobserve(video)
+        }
+      })
+    },
+    {
+      rootMargin: '500px 0px',
+    }
+  )
+
+  const loopPlaybackObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        const video = entry.target
+        if (!(video instanceof HTMLVideoElement)) return
+
+        if (entry.isIntersecting) {
+          const playPromise = video.play()
+
+          if (playPromise instanceof Promise) {
+            playPromise.catch(() => {})
+          }
+        } else if (!video.paused) {
+          video.pause()
+        }
+      })
+    },
+    {
+      threshold: 0.05,
+    }
+  )
+
+  loopVideos.forEach((video) => {
+    loopPreloadObserver.observe(video)
+    loopPlaybackObserver.observe(video)
   })
 
   // Unified mobile project-image slideshows
