@@ -268,6 +268,15 @@ const projects = await sanityClient.fetch(`
                             >
                               MUTE
                             </button>
+
+                            <button
+                              class="film-control film-fullscreen"
+                              type="button"
+                              data-film-fullscreen
+                              aria-label="Enter fullscreen"
+                            >
+                              FULL
+                            </button>
                           </div>
                         </div>
                       )
@@ -410,6 +419,15 @@ const projects = await sanityClient.fetch(`
                                 aria-label="Mute video"
                               >
                                 MUTE
+                              </button>
+
+                              <button
+                                class="film-control film-fullscreen"
+                                type="button"
+                                data-film-fullscreen
+                                aria-label="Enter fullscreen"
+                              >
+                                FULL
                               </button>
                             </div>
                           </div>
@@ -883,9 +901,17 @@ line-height: var(--project-body-line-height);
   .film-video {
     position: relative;
     width: 100%;
-    overflow: hidden;
     background: var(--black);
   }
+
+  .custom-video-player {
+    overflow: hidden;
+  }
+
+.film-video {
+  position: relative;
+  overflow: hidden;
+}
 
   .custom-video-player video,
   .film-video video {
@@ -895,137 +921,155 @@ line-height: var(--project-body-line-height);
   }
 
   .film-video video {
-  cursor: pointer;
-  border-radius: 0;
-  transform: scale(1.01);
-}
+    cursor: pointer;
+  }
 
   .loop-video video {
     pointer-events: none;
   }
 
+  /*
+    Film controls deliberately sit BELOW the video in normal document flow.
+    Nothing is layered over the <video>, avoiding Safari/WebKit's video-overlay
+    compositing behaviour entirely.
+  */
   .film-controls {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 20;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
 
-    display: grid;
-    grid-template-columns: auto minmax(70px, 1fr) auto auto;
-    align-items: center;
-    gap: 12px;
-    padding: 18px 12px 10px;
+  display: grid;
+  grid-template-columns: auto minmax(70px, 1fr) auto auto auto;
+  align-items: center;
+  gap: 12px;
 
-    background: linear-gradient(
-      to top,
-      rgba(0, 0, 0, 0.8),
-      transparent
-    );
+  padding: 18px 12px 10px;
 
-    color: var(--white);
-    font-size: 9px;
-    line-height: 1;
-    letter-spacing: 0.08em;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.8),
+    transparent
+  );
 
-    opacity: 0.7;
-    transition: opacity 160ms ease;
-  }
+  color: var(--white);
+  font-size: 9px;
+  line-height: 1;
+  letter-spacing: 0.08em;
 
-  .film-video:hover .film-controls,
-  .film-video:focus-within .film-controls {
-    opacity: 1;
-  }
+  opacity: 0.7;
+  transition: opacity 160ms ease;
+}
 
-  .film-control {
-    margin: 0;
-    padding: 0;
-    border: 0;
-    background: transparent;
-    color: inherit;
-    font: inherit;
-    letter-spacing: inherit;
-    cursor: pointer;
-    white-space: nowrap;
-  }
+.film-video:hover .film-controls,
+.film-video:focus-within .film-controls {
+  opacity: 1;
+}
 
-  .film-control:hover,
-  .film-control:focus-visible {
-    color: #999;
-  }
+.film-control {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
 
-  .film-control:focus-visible,
-  .film-progress:focus-visible {
-    outline: 1px solid currentColor;
-    outline-offset: 4px;
-  }
+.film-control:hover,
+.film-control:focus-visible {
+  color: #999;
+}
 
-  .film-time {
-    white-space: nowrap;
-    color: #aaa;
-  }
+.film-control:focus-visible,
+.film-progress:focus-visible {
+  outline: 1px solid currentColor;
+  outline-offset: 4px;
+}
 
-  .film-progress {
-    --film-progress: 0%;
+.film-time {
+  white-space: nowrap;
+  color: #aaa;
+}
 
-    width: 100%;
-    height: 12px;
-    margin: 0;
-    border: 0;
+.film-progress {
+  --film-progress: 0%;
 
-    background: linear-gradient(
-      to right,
-      var(--white) 0%,
-      var(--white) var(--film-progress),
-      #444 var(--film-progress),
-      #444 100%
-    );
-    background-size: 100% 1px;
-    background-position: center;
-    background-repeat: no-repeat;
+  width: 100%;
+  height: 12px;
+  margin: 0;
 
-    cursor: pointer;
-    appearance: none;
-    -webkit-appearance: none;
-  }
+  border: 0;
+  background: linear-gradient(
+    to right,
+    var(--white) 0%,
+    var(--white) var(--film-progress),
+    #444 var(--film-progress),
+    #444 100%
+  );
+  background-size: 100% 1px;
+  background-position: center;
+  background-repeat: no-repeat;
 
-  .film-progress::-webkit-slider-runnable-track {
-    height: 12px;
-    background: transparent;
-  }
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
 
-  .film-progress::-webkit-slider-thumb {
-    width: 8px;
-    height: 8px;
-    margin-top: 2px;
-    border: 0;
-    border-radius: 50%;
-    background: var(--white);
-    appearance: none;
-    -webkit-appearance: none;
-  }
+.film-progress::-webkit-slider-runnable-track {
+  height: 12px;
+  background: transparent;
+}
 
-  .film-progress::-moz-range-track {
-    height: 1px;
-    background: transparent;
-  }
+.film-progress::-webkit-slider-thumb {
+  width: 8px;
+  height: 8px;
+  margin-top: 2px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--white);
+  appearance: none;
+  -webkit-appearance: none;
+}
 
-  .film-progress::-moz-range-progress {
-    height: 1px;
-    background: var(--white);
-  }
+.film-progress::-moz-range-track {
+  height: 1px;
+  background: transparent;
+}
 
-  .film-progress::-moz-range-thumb {
-    width: 8px;
-    height: 8px;
-    border: 0;
-    border-radius: 50%;
-    background: var(--white);
-  }
+.film-progress::-moz-range-progress {
+  height: 1px;
+  background: var(--white);
+}
+
+.film-progress::-moz-range-thumb {
+  width: 8px;
+  height: 8px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--white);
+}
+
+.film-video:fullscreen,
+.film-video:-webkit-full-screen {
+  width: 100%;
+  height: 100%;
+  background: #000;
+}
+
+.film-video:fullscreen video,
+.film-video:-webkit-full-screen video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
 
   @media (max-width: 700px) {
     .film-controls {
-      grid-template-columns: auto minmax(50px, 1fr) auto;
+      grid-template-columns: auto minmax(50px, 1fr) auto auto;
       gap: 9px;
       padding: 10px;
       font-size: 8px;
@@ -1192,7 +1236,9 @@ h2 {
 </style>
 
 <script>
-  // Film videos use a small custom control bar over the bottom of the video.
+  // Film videos use a small custom control bar BELOW the video.
+  // There is no visual overlay on the <video>, specifically to avoid Safari's
+  // video compositing/repaint problems.
   const filmPlayers = document.querySelectorAll('[data-film-player]')
 
   const formatFilmTime = (seconds) => {
@@ -1213,12 +1259,14 @@ h2 {
     const progress = player.querySelector('[data-film-progress]')
     const time = player.querySelector('[data-film-time]')
     const muteButton = player.querySelector('[data-film-mute]')
+    const fullscreenButton = player.querySelector('[data-film-fullscreen]')
 
     if (!(video instanceof HTMLVideoElement)) return
     if (!(playButton instanceof HTMLButtonElement)) return
     if (!(progress instanceof HTMLInputElement)) return
     if (!(time instanceof HTMLElement)) return
     if (!(muteButton instanceof HTMLButtonElement)) return
+    if (!(fullscreenButton instanceof HTMLButtonElement)) return
 
     const updatePlayState = () => {
       const isPlaying = !video.paused && !video.ended
@@ -1267,6 +1315,28 @@ h2 {
       updateTimeline()
     })
 
+    fullscreenButton.addEventListener('click', async () => {
+      try {
+        if (document.fullscreenElement) {
+          await document.exitFullscreen()
+          return
+        }
+
+        if (player.requestFullscreen) {
+          await player.requestFullscreen()
+          return
+        }
+
+        // Older Safari / iOS fallback. On iPhone this may use Apple's native
+        // fullscreen presentation, while inline playback keeps our custom bar.
+        if (typeof video.webkitEnterFullscreen === 'function') {
+          video.webkitEnterFullscreen()
+        }
+      } catch {
+        // Fullscreen availability varies by Safari/iOS version. Playback remains usable.
+      }
+    })
+
     video.addEventListener('play', updatePlayState)
     video.addEventListener('pause', updatePlayState)
     video.addEventListener('ended', updatePlayState)
@@ -1278,25 +1348,6 @@ h2 {
     updatePlayState()
     updateMuteState()
     updateTimeline()
-  })
-
-
-  // Pause a film once it has completely left the viewport.
-  // Returning to it does not automatically resume playback.
-  const filmViewportObserver = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => {
-      if (entry.isIntersecting) return
-
-      const video = entry.target
-
-      if (video instanceof HTMLVideoElement && !video.paused) {
-        video.pause()
-      }
-    })
-  })
-
-  document.querySelectorAll('[data-film-player] video').forEach((video) => {
-    filmViewportObserver.observe(video)
   })
 
   // Unified mobile project-image slideshows
@@ -1382,6 +1433,12 @@ h2 {
 
     render()
     startAutoplay()
+
+    const handleResize = () => {
+      render()
+    }
+
+    window.addEventListener('resize', handleResize)
   })
 
   // Strong project scroll-in reveal
@@ -1400,12 +1457,13 @@ h2 {
 
     if (projectsPanel instanceof Element) {
       const revealObserver = new IntersectionObserver(
-        (entries, observer) => {
+        (entries) => {
           entries.forEach((entry) => {
-            if (!entry.isIntersecting) return
-
-            entry.target.classList.add('is-revealed')
-            observer.unobserve(entry.target)
+            if (entry.isIntersecting) {
+              entry.target.classList.add('is-revealed')
+            } else {
+              entry.target.classList.remove('is-revealed')
+            }
           })
         },
         {
@@ -1415,7 +1473,7 @@ h2 {
         }
       )
 
-      revealProjects.slice(1).forEach((project) => revealObserver.observe(project))
+      revealProjects.forEach((project) => revealObserver.observe(project))
     }
   }
 
