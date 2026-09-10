@@ -173,16 +173,16 @@ video {
 }
 
 .site-track {
+  position: relative;
+
   display: flex;
   width: 300vw;
   height: 100%;
 
-  transform: translateX(-100vw);
+  left: -100vw;
 
   transition:
-    transform var(--panel-transition);
-
-  will-change: transform;
+    left var(--panel-transition);
 }
 
 .site-panel {
@@ -218,15 +218,15 @@ video {
 -------------------------------------------------- */
 
 html.view-info .site-track {
-  transform: translateX(0);
+  left: 0;
 }
 
 html.view-home .site-track {
-  transform: translateX(-100vw);
+  left: -100vw;
 }
 
 html.view-playground .site-track {
-  transform: translateX(-200vw);
+  left: -200vw;
 }
 
 
