@@ -268,15 +268,6 @@ const projects = await sanityClient.fetch(`
                             >
                               MUTE
                             </button>
-
-                            <button
-                              class="film-control film-fullscreen"
-                              type="button"
-                              data-film-fullscreen
-                              aria-label="Enter fullscreen"
-                            >
-                              FULL
-                            </button>
                           </div>
                         </div>
                       )
@@ -419,15 +410,6 @@ const projects = await sanityClient.fetch(`
                                 aria-label="Mute video"
                               >
                                 MUTE
-                              </button>
-
-                              <button
-                                class="film-control film-fullscreen"
-                                type="button"
-                                data-film-fullscreen
-                                aria-label="Enter fullscreen"
-                              >
-                                FULL
                               </button>
                             </div>
                           </div>
@@ -923,7 +905,6 @@ line-height: var(--project-body-line-height);
   .film-video video {
     cursor: pointer;
     border-radius: 0;
-  
   }
 
   .loop-video video {
@@ -941,7 +922,7 @@ line-height: var(--project-body-line-height);
   z-index: 2;
 
   display: grid;
-  grid-template-columns: auto minmax(70px, 1fr) auto auto auto;
+  grid-template-columns: auto minmax(70px, 1fr) auto auto;
   align-items: center;
   gap: 12px;
 
@@ -1053,23 +1034,11 @@ line-height: var(--project-body-line-height);
   background: var(--white);
 }
 
-.film-video:fullscreen,
-.film-video:-webkit-full-screen {
-  width: 100%;
-  height: 100%;
-  background: #000;
-}
 
-.film-video:fullscreen video,
-.film-video:-webkit-full-screen video {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
 
   @media (max-width: 700px) {
     .film-controls {
-      grid-template-columns: auto minmax(50px, 1fr) auto auto;
+      grid-template-columns: auto minmax(50px, 1fr) auto;
       gap: 9px;
       padding: 10px;
       font-size: 8px;
@@ -1259,14 +1228,12 @@ h2 {
     const progress = player.querySelector('[data-film-progress]')
     const time = player.querySelector('[data-film-time]')
     const muteButton = player.querySelector('[data-film-mute]')
-    const fullscreenButton = player.querySelector('[data-film-fullscreen]')
 
     if (!(video instanceof HTMLVideoElement)) return
     if (!(playButton instanceof HTMLButtonElement)) return
     if (!(progress instanceof HTMLInputElement)) return
     if (!(time instanceof HTMLElement)) return
     if (!(muteButton instanceof HTMLButtonElement)) return
-    if (!(fullscreenButton instanceof HTMLButtonElement)) return
 
     const updatePlayState = () => {
       const isPlaying = !video.paused && !video.ended
@@ -1313,28 +1280,6 @@ h2 {
 
       video.currentTime = (Number(progress.value) / 100) * video.duration
       updateTimeline()
-    })
-
-    fullscreenButton.addEventListener('click', async () => {
-      try {
-        if (document.fullscreenElement) {
-          await document.exitFullscreen()
-          return
-        }
-
-        if (player.requestFullscreen) {
-          await player.requestFullscreen()
-          return
-        }
-
-        // Older Safari / iOS fallback. On iPhone this may use Apple's native
-        // fullscreen presentation, while inline playback keeps our custom bar.
-        if (typeof video.webkitEnterFullscreen === 'function') {
-          video.webkitEnterFullscreen()
-        }
-      } catch {
-        // Fullscreen availability varies by Safari/iOS version. Playback remains usable.
-      }
     })
 
     video.addEventListener('play', updatePlayState)
