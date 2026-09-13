@@ -17,16 +17,18 @@ const videoSrc =
   <div class="footer-meta">
     <span>© {year} Michael Thomason</span>
 
-    <video
-      class="footer-end"
-      src={videoSrc}
-      autoplay
-      muted
-      loop
-      playsinline
-      preload="metadata"
-      aria-hidden="true"
-    ></video>
+<div class:list={['footer-end-crop', { 'is-info': variant === 'info' }]}>
+  <video
+    class="footer-end"
+    src={videoSrc}
+    autoplay
+    muted
+    loop
+    playsinline
+    preload="metadata"
+    aria-hidden="true"
+  ></video>
+</div>
 
     <div class="footer-links">
       <a href="mailto:hello@thebookofmt.com">Email</a>
@@ -65,25 +67,40 @@ const videoSrc =
     text-transform: uppercase;
   }
 
-  .footer-end {
-    position: absolute;
-    left: 50%;
-    top: 50%;
+.footer-end-crop {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 45px;
 
-    display: block;
-    width: 90px;
-    height: auto;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
 
-    transform: translate(-50%, -50%);
+/* Only crop the Info version */
+.footer-end-crop.is-info {
+  height: 40px;
+  overflow: hidden;
+}
 
-    border: 0;
-    outline: 0;
-    pointer-events: none;
-  }
+.footer-end {
+  display: block;
+  width: 45px;
+  height: auto;
+  border: 0;
+  outline: 0;
+}
+
+/* Only reposition the Info film inside its crop */
+.footer-end-crop.is-info .footer-end {
+  transform: translateY(-3px);
+}
+
+
 
   .footer-links {
     display: flex;
-    gap: 18px;
+    gap: 32px;
   }
 
   .footer-links a {

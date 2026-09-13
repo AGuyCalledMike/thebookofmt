@@ -36,34 +36,33 @@ const {
 
   <body id="top">
     <Header />
+<div class="site-viewport">
+  <div class="site-track" data-site-track>
 
-    <div class="site-viewport">
-      <div class="site-track" data-site-track>
+    <section class="site-panel info-view" data-view="info">
+      <InfoOverlay />
+      <Footer variant="info" />
+    </section>
 
-        <section class="site-panel info-view" data-view="info">
-          <InfoOverlay />
-          <Footer />
-        </section>
+    <section
+      class="site-panel projects-view"
+      data-view="home"
+      data-scroll-panel
+    >
+      <slot />
+      <Footer variant="home" />
+    </section>
 
-        <section
-          class="site-panel projects-view"
-          data-view="home"
-          data-scroll-panel
-        >
-          <slot />
-          <Footer />
-        </section>
+    <section
+      class="site-panel playground-view"
+      data-view="playground"
+      data-scroll-panel
+    >
+      <Playground />
+      <Footer variant="home" />
+    </section>
 
-        <section
-          class="site-panel playground-view"
-          data-view="playground"
-          data-scroll-panel
-        >
-          <Playground />
-          <Footer />
-        </section>
-
-      </div>
-    </div>
-  </body>
+  </div>
+</div>
+</body>
 </html>
