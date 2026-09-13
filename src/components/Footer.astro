@@ -1,35 +1,35 @@
 ---
+interface Props {
+  variant?: 'home' | 'info'
+}
+
+const { variant = 'home' } = Astro.props
+
 const year = new Date().getFullYear()
+
+const videoSrc =
+  variant === 'info'
+    ? '/the-end-info.mp4'
+    : '/the-end-home.mp4'
 ---
 
 <footer class="site-footer">
   <div class="footer-meta">
     <span>© {year} Michael Thomason</span>
 
-    <div class="footer-end" aria-hidden="true">
-      <video
-        class="footer-end-video footer-end-home"
-        muted
-        loop
-        playsinline
-        preload="none"
-      >
-        <source src="/the-end-home.mp4" type="video/mp4" />
-      </video>
-
-      <video
-        class="footer-end-video footer-end-info"
-        muted
-        loop
-        playsinline
-        preload="none"
-      >
-        <source src="/the-end-info.mp4" type="video/mp4" />
-      </video>
-    </div>
+    <video
+      class="footer-end"
+      src={videoSrc}
+      autoplay
+      muted
+      loop
+      playsinline
+      preload="metadata"
+      aria-hidden="true"
+    ></video>
 
     <div class="footer-links">
-      <a href="mailto:michaelthomason@me.com">Email</a>
+      <a href="mailto:hello@thebookofmt.com">Email</a>
       <a
         href="https://www.linkedin.com/"
         target="_blank"
@@ -55,6 +55,7 @@ const year = new Date().getFullYear()
     position: relative;
     display: flex;
     justify-content: space-between;
+    align-items: center;
     gap: 24px;
 
     font-family: var(--font-mono);
@@ -68,26 +69,16 @@ const year = new Date().getFullYear()
     position: absolute;
     left: 50%;
     top: 50%;
+
+    display: block;
     width: 90px;
-    transform: translate(-50%, -50%);
-  }
-
-  .footer-end-video {
-    display: block;
-    width: 100%;
     height: auto;
-  }
 
-  .footer-end-info {
-    display: none;
-  }
+    transform: translate(-50%, -50%);
 
-  :global(html.view-info) .footer-end-home {
-    display: none;
-  }
-
-  :global(html.view-info) .footer-end-info {
-    display: block;
+    border: 0;
+    outline: 0;
+    pointer-events: none;
   }
 
   .footer-links {
@@ -118,40 +109,9 @@ const year = new Date().getFullYear()
     .footer-links {
       display: none;
     }
+
+    .footer-end {
+      width: 90px;
+    }
   }
 </style>
-
-<script>
-  const footerVideos = document.querySelectorAll('.footer-end-video')
-
-  const footerVideoObserver = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        const video = entry.target
-
-        if (!(video instanceof HTMLVideoElement)) return
-
-        if (entry.isIntersecting) {
-          video.preload = 'auto'
-          video.load()
-
-          const playPromise = video.play()
-
-          if (playPromise instanceof Promise) {
-            playPromise.catch(() => {})
-          }
-        } else if (!video.paused) {
-          video.pause()
-        }
-      })
-    },
-    {
-      rootMargin: '300px 0px',
-      threshold: 0.01,
-    }
-  )
-
-  footerVideos.forEach((video) => {
-    footerVideoObserver.observe(video)
-  })
-</script>
