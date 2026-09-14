@@ -5,6 +5,8 @@ import {orderableDocumentListDeskItem} from '@sanity/orderable-document-list'
 import {schemaTypes} from './schemaTypes'
 import {createRandomisePlaygroundAction} from './actions/randomisePlayground'
 import {media} from 'sanity-plugin-media'
+import MediaOptimiser from './tools/MediaOptimiser'
+
 
 export default defineConfig({
   name: 'default',
@@ -13,35 +15,43 @@ export default defineConfig({
   projectId: 'rlg8i7d8',
   dataset: 'production',
 
-plugins: [
-  structureTool({
-    structure: (S, context) =>
-      S.list()
-        .title('Content')
-        .items([
-          orderableDocumentListDeskItem({
-            type: 'project',
-            title: 'Projects',
-            S,
-            context,
-          }),
+  plugins: [
+    structureTool({
+      structure: (S, context) =>
+        S.list()
+          .title('Content')
+          .items([
+            orderableDocumentListDeskItem({
+              type: 'project',
+              title: 'Projects',
+              S,
+              context,
+            }),
 
-          ...S.documentTypeListItems().filter((item) => {
-            const id = item.getId()
+            ...S.documentTypeListItems().filter((item) => {
+              const id = item.getId()
 
-            return (
-              id !== 'project' &&
-              id !== 'media.tag' &&
-              id !== 'media.folder'
-            )
-          }),
-        ]),
-  }),
+              return (
+                id !== 'project' &&
+                id !== 'media.tag' &&
+                id !== 'media.folder'
+              )
+            }),
+          ]),
+    }),
 
-  media(),
+    media(),
 
-  visionTool(),
-],
+    visionTool(),
+  ],
+
+  tools: [
+    {
+      name: 'media-optimiser',
+      title: 'Optimiser',
+      component: MediaOptimiser,
+    },
+  ],
 
   schema: {
     types: schemaTypes,
