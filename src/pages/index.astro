@@ -24,7 +24,8 @@ const siteSettings = await sanityClient.fetch(`
 `)
 const portfolioLive = siteSettings?.portfolioLive !== false
 
-const projects = await sanityClient.fetch(`
+const projects = portfolioLive
+  ? await sanityClient.fetch(`
   *[_type == "project" && hidden != true] | order(orderRank asc, _createdAt asc) {
     _id,
     "slug": slug.current,
@@ -128,12 +129,12 @@ const projects = await sanityClient.fetch(`
     }
   }
 `)
+  : []
 ---
 
-<Layout>
-  {
-    portfolioLive ? (
-      <main>
+{portfolioLive ? (
+  <Layout>
+    <main>
     {
       projects.map((project) => {
         const media = project.media ?? []
@@ -600,57 +601,84 @@ const projects = await sanityClient.fetch(`
         )
       })
     }
-      </main>
-    ) : (
+    </main>
+  </Layout>
+) : (
+  <html lang="en">
+    <head>
+      <meta charset="utf-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <meta name="robots" content="noindex, nofollow" />
+      <title>The Book of MT</title>
+    </head>
+    <body class="holding-body">
       <main class="holding-page" data-holding-page>
-      <div class="holding-logo" data-holding-logo>
-  <img src="/offline.png" alt="" aria-hidden="true" />
-</div>
+        <div class="holding-logo" data-holding-logo>
+          <img src="/offline.png" alt="" aria-hidden="true" />
+        </div>
       </main>
-    )
-  }
-</Layout>
+    </body>
+  </html>
+)}
 
 <style>
-  .holding-page {position:fixed;inset:0;z-index:9999;overflow:hidden;background:#ffe501 ;}
-
-.holding-logo {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 150px;
-  height: 150px;
-  user-select: none;
-  pointer-events: none;
-  will-change: transform;
-}
-
-.holding-logo img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  animation: face-spin 4s linear infinite;
-}
-
-@keyframes face-spin {
-  from {
-    transform: rotate(0deg);
+  :global(html),
+  :global(body.holding-body) {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #ffe501;
   }
 
-  to {
-    transform: rotate(360deg);
+  .holding-page {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    background: #ffe501;
   }
-}
 
-@media (max-width: 700px) {
   .holding-logo {
-    width: 112px;
-    height: 112px;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 150px;
+    height: 150px;
+    user-select: none;
+    pointer-events: none;
+    will-change: transform;
   }
-}
 
+  .holding-logo img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    animation: face-spin 4s linear infinite;
+  }
 
+  @keyframes face-spin {
+    to { transform: rotate(360deg); }
+  }
+
+  @media (max-width: 700px) {
+    .holding-logo {
+      width: 112px;
+      height: 112px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .holding-logo {
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .holding-logo img {
+      animation: none;
+    }
+  }
 
   .project {
     padding: var(--project-top-space) var(--project-gutter) var(--project-bottom-space);
@@ -945,16 +973,8 @@ line-height: var(--project-body-line-height);
     position: relative;
     width: 100%;
     background: var(--black);
-  }
-
-  .custom-video-player {
     overflow: hidden;
   }
-
-.film-video {
-  position: relative;
-  overflow: hidden;
-}
 
   .custom-video-player video,
   .film-video video {
@@ -1273,24 +1293,50 @@ h2 {
 </style>
 
 <script>
-  // Holding page: classic DVD-style bouncing mark.
   const holdingPage = document.querySelector('[data-holding-page]')
   const holdingLogo = document.querySelector('[data-holding-logo]')
-  if (holdingPage instanceof HTMLElement && holdingLogo instanceof HTMLElement && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    let x=32, y=32, vx=1.65, vy=1.35, lastTime=performance.now(), colourIndex=0
-    const colours=['#ffffff','#00ff1a','#ff3b30','#ffd60a','#64d2ff','#bf5af2','#ff9f0a']
-    const changeColour=()=>{colourIndex=(colourIndex+1)%colours.length;const c=colours[colourIndex];holdingLogo.style.color=c;holdingLogo.style.borderColor=c}
-    const animate=(time)=>{
-      const delta=Math.min((time-lastTime)/16.6667,2);lastTime=time
-      const maxX=Math.max(0,holdingPage.clientWidth-holdingLogo.offsetWidth)
-      const maxY=Math.max(0,holdingPage.clientHeight-holdingLogo.offsetHeight)
-      x+=vx*delta;y+=vy*delta;let bounced=false
-      if(x<=0){x=0;vx=Math.abs(vx);bounced=true}else if(x>=maxX){x=maxX;vx=-Math.abs(vx);bounced=true}
-      if(y<=0){y=0;vy=Math.abs(vy);bounced=true}else if(y>=maxY){y=maxY;vy=-Math.abs(vy);bounced=true}
-      if(bounced)changeColour()
-      holdingLogo.style.transform=`translate3d(${x}px, ${y}px, 0)`
+
+  if (
+    holdingPage instanceof HTMLElement &&
+    holdingLogo instanceof HTMLElement &&
+    !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  ) {
+    let x = 32
+    let y = 32
+    let vx = 1.65
+    let vy = 1.35
+    let lastTime = performance.now()
+
+    const animate = (time) => {
+      const delta = Math.min((time - lastTime) / 16.6667, 2)
+      lastTime = time
+
+      const maxX = Math.max(0, holdingPage.clientWidth - holdingLogo.offsetWidth)
+      const maxY = Math.max(0, holdingPage.clientHeight - holdingLogo.offsetHeight)
+
+      x += vx * delta
+      y += vy * delta
+
+      if (x <= 0) {
+        x = 0
+        vx = Math.abs(vx)
+      } else if (x >= maxX) {
+        x = maxX
+        vx = -Math.abs(vx)
+      }
+
+      if (y <= 0) {
+        y = 0
+        vy = Math.abs(vy)
+      } else if (y >= maxY) {
+        y = maxY
+        vy = -Math.abs(vy)
+      }
+
+      holdingLogo.style.transform = `translate3d(${x}px, ${y}px, 0)`
       requestAnimationFrame(animate)
     }
+
     requestAnimationFrame(animate)
   }
 
