@@ -15,6 +15,14 @@ export const siteSettingsType = defineType({
     }),
 
     defineField({
+  name: 'portfolioLive',
+  title: 'Portfolio live',
+  type: 'boolean',
+  description: 'Turn off to replace the portfolio with the holding page.',
+  initialValue: true,
+}),
+
+    defineField({
       name: 'siteTitle',
       title: 'Site title',
       type: 'string',
