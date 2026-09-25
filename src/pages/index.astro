@@ -22,8 +22,7 @@ function sanitySrcset(url) {
 const siteSettings = await sanityClient.fetch(`
   *[_type == "siteSettings"][0] { portfolioLive }
 `)
-const portfolioLive =
-  import.meta.env.DEV || siteSettings?.portfolioLive !== false
+const portfolioLive = siteSettings?.portfolioLive !== false
 const projects = portfolioLive
   ? await sanityClient.fetch(`
   *[_type == "project" && hidden != true] | order(orderRank asc, _createdAt asc) {
