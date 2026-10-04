@@ -174,6 +174,7 @@ const settings = await sanityClient.fetch(`
     eyes.forEach((eye) => {
       const pupil = eye.querySelector('.pupil')
       if (!(pupil instanceof HTMLElement)) return
+
       pupil.style.transform = 'translate(0, 0)'
     })
   }
@@ -189,6 +190,7 @@ const settings = await sanityClient.fetch(`
       if (!(pupil instanceof HTMLElement)) return
 
       const rect = eye.getBoundingClientRect()
+
       const eyeX = rect.left + rect.width / 2
       const eyeY = rect.top + rect.height / 2
 
@@ -223,6 +225,7 @@ const settings = await sanityClient.fetch(`
     if (!mobileEyes.matches || blinkCooldown) return
 
     blinkCooldown = true
+
     document.documentElement.classList.add('eyes-blink')
 
     window.setTimeout(() => {
@@ -253,6 +256,7 @@ const settings = await sanityClient.fetch(`
   mobileEyes.addEventListener?.('change', () => {
     if (!mobileEyes.matches) {
       document.documentElement.classList.remove('eyes-blink')
+
       blinkCooldown = false
 
       if (blinkTimeout) {
@@ -272,6 +276,7 @@ const settings = await sanityClient.fetch(`
 
     for (let i = 0; i < 14; i++) {
       const piece = document.createElement('span')
+
       piece.className = 'copy-confetti'
 
       const angle = Math.random() * Math.PI * 2
@@ -305,66 +310,162 @@ const settings = await sanityClient.fetch(`
   }
 
   const copyEmail = async (email) => {
-  try {
-    if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(email)
-      return true
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(email)
+        return true
+      }
+    } catch {
+      // Fall through to Safari fallback
     }
-  } catch {
-    // Fall through to Safari/legacy fallback
+
+    const textarea = document.createElement('textarea')
+
+    textarea.value = email
+    textarea.setAttribute('readonly', '')
+    textarea.style.position = 'fixed'
+    textarea.style.opacity = '0'
+    textarea.style.pointerEvents = 'none'
+
+    document.body.appendChild(textarea)
+
+    textarea.focus()
+    textarea.select()
+    textarea.setSelectionRange(0, email.length)
+
+    let copied = false
+
+    try {
+      copied = document.execCommand('copy')
+    } catch {
+      copied = false
+    }
+
+    textarea.remove()
+
+    return copied
   }
 
-  const textarea = document.createElement('textarea')
+  const contactButton = document.querySelector('.contact')
 
-  textarea.value = email
-  textarea.setAttribute('readonly', '')
-  textarea.style.position = 'fixed'
-  textarea.style.opacity = '0'
-  textarea.style.pointerEvents = 'none'
+  contactButton?.addEventListener('click', async () => {
+    if (!(contactButton instanceof HTMLElement)) return
 
-  document.body.appendChild(textarea)
+    const email = contactButton.dataset.email
+    if (!email) return
 
-  textarea.focus()
-  textarea.select()
-  textarea.setSelectionRange(0, email.length)
+    const copied = await copyEmail(email)
 
-  let copied = false
+    if (!copied) {
+      console.error('Could not copy email address.')
+      return
+    }
 
-  try {
-    copied = document.execCommand('copy')
-  } catch {
-    copied = false
+    const originalText = contactButton.textContent
+
+    contactButton.textContent = 'Email copied'
+
+    burstConfetti(contactButton)
+
+    window.setTimeout(() => {
+      contactButton.textContent = originalText
+    }, 1200)
+  })
+
+  const viewTriggers = document.querySelectorAll('[data-view-trigger]')
+
+  const showView = (view) => {
+    document.documentElement.classList.remove(
+      'view-info',
+      'view-home',
+      'view-playground'
+    )
+
+    document.documentElement.classList.add(`view-${view}`)
   }
 
-  textarea.remove()
+  viewTriggers.forEach((trigger) => {
+    trigger.addEventListener('click', () => {
+      if (!(trigger instanceof HTMLElement)) return
 
-  return copied
-}
+      const view = trigger.dataset.viewTrigger
+      if (!view) return
 
-const contactButton = document.querySelector('.contact')
+      showView(view)
+    })
+  })
 
-contactButton?.addEventListener('click', async () => {
-  if (!(contactButton instanceof HTMLElement)) return
+  document
+    .querySelectorAll('[data-info-project-link]')
+    .forEach((link) => {
+      if (!(link instanceof HTMLAnchorElement)) return
 
-  const email = contactButton.dataset.email
-  if (!email) return
+      link.addEventListener('click', (event) => {
+        const slug = link.dataset.projectSlug
+        if (!slug) return
 
-  const copied = await copyEmail(email)
+        const project = document.getElementById(`project-${slug}`)
+        const projectsPanel = document.querySelector('.projects-view')
 
-  if (!copied) {
-    console.error('Could not copy email address.')
-    return
-  }
+        if (!(project instanceof HTMLElement)) return
+        if (!(projectsPanel instanceof HTMLElement)) return
 
-  const originalText = contactButton.textContent
+        event.preventDefault()
 
-  contactButton.textContent = 'Email copied'
+        showView('home')
 
-  burstConfetti(contactButton)
+        window.setTimeout(() => {
+          const panelRect = projectsPanel.getBoundingClientRect()
+          const projectRect = project.getBoundingClientRect()
 
-  window.setTimeout(() => {
-    contactButton.textContent = originalText
-  }, 1200)
-})
+          const topOffset =
+            window.innerWidth <= 700
+              ? 70
+              : 120
 
+          const targetTop =
+            projectsPanel.scrollTop +
+            projectRect.top -
+            panelRect.top -
+            topOffset
+
+          projectsPanel.scrollTo({
+            top: targetTop,
+            behavior: 'smooth',
+          })
+        }, 700)
+      })
+    })
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return
+
+    if (
+      document.documentElement.classList.contains('view-info') ||
+      document.documentElement.classList.contains('view-playground')
+    ) {
+      showView('home')
+    }
+  })
+
+  const backToTop = document.querySelector('.back-to-top')
+
+  backToTop?.addEventListener('click', () => {
+    let panel = document.querySelector('.projects-view')
+
+    if (
+      document.documentElement.classList.contains('view-playground')
+    ) {
+      panel = document.querySelector('.playground-view')
+    } else if (
+      document.documentElement.classList.contains('view-info')
+    ) {
+      panel = document.querySelector('.info-view')
+    }
+
+    panel?.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    })
+  })
 </script>
