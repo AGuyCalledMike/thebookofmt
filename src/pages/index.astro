@@ -1,6 +1,7 @@
 ---
 import { sanityClient } from 'sanity:client'
 import Layout from '../layouts/Layout.astro'
+import VideoSlideshow from '../components/VideoSlideshow.astro'
 
 const imageWidths = [480, 768, 1024, 1440, 1920, 2400]
 
@@ -34,6 +35,8 @@ const projects = portfolioLive
       _key,
       mediaType,
       videoMode,
+      videoTransitionDuration,
+      videoSlides[] { _key, title, duration, video { asset-> { url } }, poster { asset-> { url } } },
       width,
       alt,
 
@@ -221,7 +224,9 @@ const projects = portfolioLive
                   ]}
                 >
                   {
-                    item.mediaType === 'video' && item.video?.asset?.url ? (
+                    item.mediaType === 'videoSlideshow' ? (
+                      <VideoSlideshow slides={item.videoSlides} fade={item.videoTransitionDuration} />
+                    ) : item.mediaType === 'video' && item.video?.asset?.url ? (
                       item.videoMode === 'loop' ? (
                         <div class="custom-video-player loop-video">
                           <video
@@ -362,6 +367,10 @@ const projects = portfolioLive
 
             <div class="mobile-media">
               {media.map((item, mediaIndex) => {
+                if (item.mediaType === 'videoSlideshow') {
+                  return <div class="mobile-media-item"><VideoSlideshow slides={item.videoSlides} fade={item.videoTransitionDuration} /></div>
+                }
+
                 if (item.mediaType === 'video' && item.video?.asset?.url) {
                   return (
                     <div class="mobile-media-item">

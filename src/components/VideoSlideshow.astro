@@ -1,0 +1,44 @@
+---
+interface Slide {
+  title?: string
+  duration?: number
+  video?: {asset?: {url?: string}}
+  poster?: {asset?: {url?: string}}
+}
+interface Props { slides?: Slide[]; fade?: number }
+const {slides = [], fade = 0.5} = Astro.props
+const videos = slides.filter((slide) => slide.video?.asset?.url)
+const fadeSeconds = Number.isFinite(fade) ? Math.min(10, Math.max(0, fade)) : 0.5
+---
+{videos.length > 0 && (
+  <section class="video-slideshow" data-video-slideshow data-fade={fadeSeconds} aria-label="Video slideshow" aria-roledescription="carousel" style={`--video-fade: ${fadeSeconds}s`}>
+    <div class="slides">
+      {videos.map((slide, index) => (
+        <video class:list={['slide', {active: index === 0}]} muted loop playsinline preload="none"
+          src={slide.video.asset.url} poster={slide.poster?.asset?.url}
+          data-duration={slide.duration ?? 5} aria-label={slide.title || `Video ${index + 1}`}
+          aria-hidden={index !== 0} />
+      ))}
+    </div>
+    <div class="controls">
+      <button type="button" data-prev aria-label="Previous video">←</button>
+      <button type="button" data-toggle aria-label="Pause slideshow">Pause</button>
+      <span data-status aria-live="polite">1 / {videos.length}</span>
+      <button type="button" data-next aria-label="Next video">→</button>
+    </div>
+  </section>
+)}
+<style>
+  .video-slideshow {width:100%; background:#000; color:#fff;}
+  .slides {position:relative; aspect-ratio:16/9; overflow:hidden;}
+  .slide {position:absolute; inset:0; width:100%; height:100%; object-fit:contain; opacity:0; transition:opacity var(--video-fade) linear;}
+  .slide.active {opacity:1; z-index:1;}
+  .controls {display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:0.6rem;}
+  button {font:inherit; color:inherit; background:transparent; border:1px solid currentColor; padding:0.3rem 0.7rem; cursor:pointer;}
+  button:focus-visible {outline:2px solid white; outline-offset:3px;}
+  @media (prefers-reduced-motion:reduce) {.slide {transition:none;}}
+</style>
+<script>
+  import {initVideoSlideshows} from '../scripts/videoSlideshow'
+  initVideoSlideshows()
+</script>

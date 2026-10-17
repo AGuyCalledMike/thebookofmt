@@ -73,6 +73,7 @@ defineField({
                   {title: 'Image', value: 'image'},
                   {title: 'Video', value: 'video'},
                   {title: 'Slideshow', value: 'slideshow'},
+                  {title: 'Video slideshow', value: 'videoSlideshow'},
                   {title: '4-image gallery', value: 'gallery'},
                 ],
               },
@@ -182,6 +183,40 @@ defineField({
 
 
             defineField({
+              name: 'videoSlides',
+              title: 'Video slides',
+              description: 'Videos play muted and loop until their display time expires. Drag to reorder.',
+              type: 'array',
+              hidden: ({parent}) => parent?.mediaType !== 'videoSlideshow',
+              validation: (Rule) => Rule.custom((slides, context) => {
+                const parent = context.parent as {mediaType?: string} | undefined
+                return parent?.mediaType !== 'videoSlideshow' || (Array.isArray(slides) && slides.length >= 2)
+                  ? true : 'Add at least two video slides.'
+              }),
+              of: [{
+                type: 'object',
+                name: 'videoSlide',
+                title: 'Video slide',
+                fields: [
+                  defineField({name: 'title', title: 'Description', type: 'string', validation: (Rule) => Rule.required()}),
+                  defineField({name: 'video', title: 'Video', type: 'file', options: {accept: 'video/*'}, validation: (Rule) => Rule.required()}),
+                  defineField({name: 'poster', title: 'Poster image', type: 'image', options: {hotspot: true}}),
+                  defineField({name: 'duration', title: 'Display time (seconds)', description: 'Time before the next fade starts. Shorter videos loop.', type: 'number', initialValue: 5, validation: (Rule) => Rule.required().min(0.5).max(600)}),
+                ],
+                preview: {select: {title: 'title', media: 'poster'}},
+              }],
+            }),
+            defineField({
+              name: 'videoTransitionDuration',
+              title: 'Fade duration (seconds)',
+              description: 'Use 0 for an immediate cut. This is added after each slide’s display time.',
+              type: 'number',
+              initialValue: 0.5,
+              hidden: ({parent}) => parent?.mediaType !== 'videoSlideshow',
+              validation: (Rule) => Rule.min(0).max(10),
+            }),
+
+            defineField({
               name: 'galleryImages',
               title: 'Gallery images',
               description: 'Select exactly four images from the Media Library.',
@@ -281,7 +316,9 @@ defineField({
               galleryCount,
             }) {
               const typeLabel =
-                mediaType === 'video'
+                mediaType === 'videoSlideshow'
+                  ? 'VIDEO SLIDESHOW'
+                  : mediaType === 'video'
                   ? 'VIDEO'
                   : mediaType === 'slideshow'
                     ? 'SLIDESHOW'
