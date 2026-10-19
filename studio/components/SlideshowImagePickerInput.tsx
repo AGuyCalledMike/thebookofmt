@@ -2,11 +2,22 @@ import {useMemo, useState} from 'react'
 import {set, unset, useClient} from 'sanity'
 import {Button, Dialog, Spinner} from '@sanity/ui'
 
-type SanityImageAsset = {
+type SanityMediaAsset = {
   _id: string
   url: string
   originalFilename?: string
 }
+
+type SlideValue = {
+  _key: string
+  _type: 'image' | 'file'
+  asset: {
+    _type: 'reference'
+    _ref: string
+  }
+}
+
+type MediaKind = 'image' | 'video'
 
 function makeKey() {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -65,7 +76,7 @@ const styles = {
     borderRadius: '6px',
     background: 'rgba(255,255,255,.03)',
   },
-  imageWrap: {
+  previewWrap: {
     aspectRatio: '1 / 1',
     overflow: 'hidden',
     background: 'rgba(127,127,127,.08)',
@@ -75,6 +86,16 @@ const styles = {
     height: '100%',
     objectFit: 'cover' as const,
     display: 'block',
+  },
+  videoPlaceholder: {
+    width: '100%',
+    height: '100%',
+    display: 'grid',
+    placeItems: 'center',
+    background: '#111',
+    color: '#fff',
+    fontSize: '11px',
+    letterSpacing: '0.12em',
   },
   checkbox: {
     position: 'absolute' as const,
@@ -93,24 +114,19 @@ const styles = {
   },
 }
 
-type SlideValue = {
-  _key: string
-  _type: 'image'
-  asset: {
-    _type: 'reference'
-    _ref: string
-  }
-}
-
-export default function SlideshowImagePickerInput(props: any) {
+function SlideshowMediaPickerInput({props, mediaKind}: {props: any; mediaKind: MediaKind}) {
   const client = useClient({apiVersion: '2026-01-01'})
   const value = (props.value || []) as SlideValue[]
 
   const [open, setOpen] = useState(false)
-  const [images, setImages] = useState<SanityImageAsset[]>([])
+  const [assets, setAssets] = useState<SanityMediaAsset[]>([])
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const isVideo = mediaKind === 'video'
+  const singular = isVideo ? 'film' : 'image'
+  const plural = isVideo ? 'films' : 'images'
 
   const currentAssetIds = useMemo(
     () =>
@@ -120,23 +136,32 @@ export default function SlideshowImagePickerInput(props: any) {
     [value],
   )
 
-  const loadImages = async () => {
+  const loadAssets = async () => {
     setLoading(true)
     setError(null)
 
     try {
-      const result = await client.fetch<SanityImageAsset[]>(`
-        *[_type == "sanity.imageAsset"] | order(_createdAt desc) {
-          _id,
-          url,
-          originalFilename
-        }
-      `)
+      const query = isVideo
+        ? `
+          *[_type == "sanity.fileAsset" && mimeType match "video/*"] | order(_createdAt desc) {
+            _id,
+            url,
+            originalFilename
+          }
+        `
+        : `
+          *[_type == "sanity.imageAsset"] | order(_createdAt desc) {
+            _id,
+            url,
+            originalFilename
+          }
+        `
 
-      setImages(result.filter((item) => item._id && item.url))
+      const result = await client.fetch<SanityMediaAsset[]>(query)
+      setAssets(result.filter((item) => item._id && item.url))
     } catch (err) {
       console.error(err)
-      setError('Could not load the image library.')
+      setError(`Could not load the ${singular} library.`)
     } finally {
       setLoading(false)
     }
@@ -145,7 +170,7 @@ export default function SlideshowImagePickerInput(props: any) {
   const openPicker = async () => {
     setSelectedIds(currentAssetIds)
     setOpen(true)
-    await loadImages()
+    await loadAssets()
   }
 
   const toggle = (id: string) => {
@@ -161,7 +186,7 @@ export default function SlideshowImagePickerInput(props: any) {
 
     const nextValue: SlideValue[] = selectedIds.map((assetId) => ({
       _key: makeKey(),
-      _type: 'image',
+      _type: isVideo ? 'file' : 'image',
       asset: {
         _type: 'reference',
         _ref: assetId,
@@ -176,7 +201,7 @@ export default function SlideshowImagePickerInput(props: any) {
     <div>
       <div style={styles.toolbar}>
         <Button
-          text={value.length >= 2 ? 'Change selection' : 'Select slideshow images'}
+          text={value.length >= 2 ? 'Change selection' : `Select slideshow ${plural}`}
           mode="ghost"
           onClick={openPicker}
         />
@@ -197,21 +222,21 @@ export default function SlideshowImagePickerInput(props: any) {
 
       {open ? (
         <Dialog
-          id="slideshow-image-picker"
-          header={`Select slideshow images · ${selectedIds.length} selected`}
+          id={`slideshow-${mediaKind}-picker`}
+          header={`Select slideshow ${plural} · ${selectedIds.length} selected`}
           width={5}
           onClose={() => setOpen(false)}
         >
           <div style={styles.dialogBody}>
             <div style={styles.dialogHeader}>
               <span style={styles.muted}>
-                Select as many images as you want. Minimum two.
+                Select as many {plural} as you want. Minimum two.
               </span>
 
               <Button
                 text={
                   selectedIds.length >= 2
-                    ? `Use ${selectedIds.length} images`
+                    ? `Use ${selectedIds.length} ${plural}`
                     : `${selectedIds.length} selected`
                 }
                 tone="primary"
@@ -224,16 +249,16 @@ export default function SlideshowImagePickerInput(props: any) {
               <div style={{display: 'flex', justifyContent: 'center', padding: '40px'}}>
                 <Spinner />
               </div>
-            ) : images.length ? (
+            ) : assets.length ? (
               <div style={styles.grid}>
-                {images.map((image) => {
-                  const selected = selectedIds.includes(image._id)
+                {assets.map((asset) => {
+                  const selected = selectedIds.includes(asset._id)
 
                   return (
                     <button
-                      key={image._id}
+                      key={asset._id}
                       type="button"
-                      onClick={() => toggle(image._id)}
+                      onClick={() => toggle(asset._id)}
                       style={styles.tileButton}
                     >
                       <div
@@ -250,16 +275,20 @@ export default function SlideshowImagePickerInput(props: any) {
                           style={styles.checkbox}
                         />
 
-                        <div style={styles.imageWrap}>
-                          <img
-                            src={`${image.url}?auto=format&fit=crop&w=600&h=600&q=78`}
-                            alt=""
-                            style={styles.image}
-                          />
+                        <div style={styles.previewWrap}>
+                          {isVideo ? (
+                            <div style={styles.videoPlaceholder}>FILM</div>
+                          ) : (
+                            <img
+                              src={`${asset.url}?auto=format&fit=crop&w=600&h=600&q=78`}
+                              alt=""
+                              style={styles.image}
+                            />
+                          )}
                         </div>
 
                         <div style={styles.filename}>
-                          {image.originalFilename || 'Image'}
+                          {asset.originalFilename || (isVideo ? 'Film' : 'Image')}
                         </div>
                       </div>
                     </button>
@@ -267,11 +296,19 @@ export default function SlideshowImagePickerInput(props: any) {
                 })}
               </div>
             ) : (
-              <div style={styles.muted}>No uploaded images were found.</div>
+              <div style={styles.muted}>No uploaded {plural} were found.</div>
             )}
           </div>
         </Dialog>
       ) : null}
     </div>
   )
+}
+
+export default function SlideshowImagePickerInput(props: any) {
+  return <SlideshowMediaPickerInput props={props} mediaKind="image" />
+}
+
+export function SlideshowVideoPickerInput(props: any) {
+  return <SlideshowMediaPickerInput props={props} mediaKind="video" />
 }

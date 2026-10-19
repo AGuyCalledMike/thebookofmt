@@ -1,7 +1,7 @@
 import {defineField, defineType} from 'sanity'
 import {orderRankField} from '@sanity/orderable-document-list'
 import GalleryImagePickerInput from '../components/GalleryImagePickerInput'
-import SlideshowImagePickerInput from '../components/SlideshowImagePickerInput'
+import SlideshowImagePickerInput, {SlideshowVideoPickerInput} from '../components/SlideshowImagePickerInput'
 
 export const projectType = defineType({
   name: 'project',
@@ -128,24 +128,45 @@ defineField({
             }),
 
             defineField({
+              name: 'slideshowType',
+              title: 'Slideshow media',
+              type: 'string',
+              options: {
+                layout: 'radio',
+                list: [
+                  {title: 'Image', value: 'image'},
+                  {title: 'Film', value: 'film'},
+                ],
+              },
+              initialValue: 'image',
+              hidden: ({parent}) => parent?.mediaType !== 'slideshow',
+            }),
+
+            defineField({
               name: 'slides',
-              title: 'Slides',
+              title: 'Images',
               description: 'Select two or more images from the image library.',
               type: 'array',
-              hidden: ({parent}) => parent?.mediaType !== 'slideshow',
+              hidden: ({parent}) =>
+                parent?.mediaType !== 'slideshow' || parent?.slideshowType === 'film',
               components: {
                 input: SlideshowImagePickerInput,
               },
               validation: (Rule) =>
                 Rule.custom((slides, context) => {
-                  const parent = context.parent as {mediaType?: string} | undefined
+                  const parent = context.parent as
+                    | {mediaType?: string; slideshowType?: string}
+                    | undefined
 
-                  if (parent?.mediaType !== 'slideshow') {
+                  if (
+                    parent?.mediaType !== 'slideshow' ||
+                    parent?.slideshowType === 'film'
+                  ) {
                     return true
                   }
 
                   if (!Array.isArray(slides) || slides.length < 2) {
-                    return 'Add at least two images to a slideshow.'
+                    return 'Add at least two images to the slideshow.'
                   }
 
                   return true
@@ -181,6 +202,46 @@ defineField({
               ],
             }),
 
+            defineField({
+              name: 'slideVideos',
+              title: 'Films',
+              description: 'Select two or more films from the media library.',
+              type: 'array',
+              hidden: ({parent}) =>
+                parent?.mediaType !== 'slideshow' || parent?.slideshowType !== 'film',
+              components: {
+                input: SlideshowVideoPickerInput,
+              },
+              validation: (Rule) =>
+                Rule.custom((films, context) => {
+                  const parent = context.parent as
+                    | {mediaType?: string; slideshowType?: string}
+                    | undefined
+
+                  if (
+                    parent?.mediaType !== 'slideshow' ||
+                    parent?.slideshowType !== 'film'
+                  ) {
+                    return true
+                  }
+
+                  if (!Array.isArray(films) || films.length < 2) {
+                    return 'Add at least two films to the slideshow.'
+                  }
+
+                  return true
+                }),
+              of: [
+                {
+                  type: 'file',
+                  name: 'slideFilm',
+                  title: 'Film',
+                  options: {
+                    accept: 'video/*',
+                  },
+                },
+              ],
+            }),
 
             defineField({
               name: 'videoSlides',
@@ -299,8 +360,10 @@ defineField({
               width: 'width',
               image: 'image',
               poster: 'poster',
+              slideshowType: 'slideshowType',
               firstSlide: 'slides.0',
               slideCount: 'slides',
+              filmCount: 'slideVideos',
               firstGalleryImage: 'galleryImages.0',
               galleryCount: 'galleryImages',
             },
@@ -310,8 +373,10 @@ defineField({
               width,
               image,
               poster,
+              slideshowType,
               firstSlide,
               slideCount,
+              filmCount,
               firstGalleryImage,
               galleryCount,
             }) {
@@ -328,9 +393,12 @@ defineField({
 
               const widthLabel = width === 'half' ? 'HALF' : 'FULL'
 
+              const slideshowCount =
+                slideshowType === 'film' ? filmCount : slideCount
+
               const subtitle =
-                mediaType === 'slideshow' && Array.isArray(slideCount)
-                  ? `${slideCount.length} slide${slideCount.length === 1 ? '' : 's'}`
+                mediaType === 'slideshow' && Array.isArray(slideshowCount)
+                  ? `${slideshowCount.length} ${slideshowType === 'film' ? 'film' : 'slide'}${slideshowCount.length === 1 ? '' : 's'}`
                   : mediaType === 'gallery' && Array.isArray(galleryCount)
                     ? `${galleryCount.length} image${galleryCount.length === 1 ? '' : 's'}`
                     : undefined
@@ -352,6 +420,20 @@ defineField({
         },
       ],
     }),
+
+    defineField({
+      name: 'slideshowTransitionTime',
+      title: 'Slideshow transition time',
+      description: 'Seconds each slide stays on screen before moving to the next.',
+      type: 'number',
+      initialValue: 4,
+      validation: (Rule) => Rule.min(0.5).max(60),
+      hidden: ({document}) => {
+        const media = document?.media as Array<{mediaType?: string}> | undefined
+        return !media?.some((item) => item?.mediaType === 'slideshow')
+      },
+    }),
+
     defineField({
       name: 'brand',
       title: 'Brand',

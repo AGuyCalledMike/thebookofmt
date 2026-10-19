@@ -1,7 +1,6 @@
 ---
 import { sanityClient } from 'sanity:client'
 import Layout from '../layouts/Layout.astro'
-import VideoSlideshow from '../components/VideoSlideshow.astro'
 
 const imageWidths = [480, 768, 1024, 1440, 1920, 2400]
 
@@ -31,12 +30,12 @@ const projects = portfolioLive
     "slug": slug.current,
     headline,
     tags,
+    slideshowTransitionTime,
     media[] {
       _key,
       mediaType,
       videoMode,
-      videoTransitionDuration,
-      videoSlides[] { _key, title, duration, video { asset-> { url } }, poster { asset-> { url } } },
+      slideshowType,
       width,
       alt,
 
@@ -83,6 +82,14 @@ const projects = portfolioLive
               aspectRatio
             }
           }
+        }
+      },
+
+      slideVideos[] {
+        asset-> {
+          url,
+          originalFilename,
+          mimeType
         }
       },
 
@@ -141,7 +148,10 @@ const projects = portfolioLive
       projects.map((project) => {
         const media = project.media ?? []
 
-        const mobileImages = media.flatMap((item) => {
+        // On mobile, keep actual slideshow media as its own slideshow instead of
+        // flattening it into the project-wide image sequence. This preserves
+        // desktop pairings such as a half-width image next to a half-width slideshow.
+        const mobileStaticImages = media.flatMap((item) => {
           if (item.mediaType === 'image' && item.image?.asset?.url) {
             return [
               {
@@ -152,18 +162,6 @@ const projects = portfolioLive
                 height: item.image.asset.metadata?.dimensions?.height,
               },
             ]
-          }
-
-          if (item.mediaType === 'slideshow' && item.slides?.length) {
-            return item.slides
-              .filter((slide) => slide.asset?.url)
-              .map((slide, index) => ({
-                key: `${item._key}-${index}`,
-                url: slide.asset.url,
-                alt: slide.alt || '',
-                width: slide.asset.metadata?.dimensions?.width,
-                height: slide.asset.metadata?.dimensions?.height,
-              }))
           }
 
           if (item.mediaType === 'gallery' && item.galleryImages?.length) {
@@ -181,14 +179,13 @@ const projects = portfolioLive
           return []
         })
 
-        const firstImageMediaIndex = media.findIndex(
+        const firstMobileStaticMediaIndex = media.findIndex(
           (item) =>
             (item.mediaType === 'image' && item.image?.asset?.url) ||
-            (item.mediaType === 'slideshow' &&
-              item.slides?.some((slide) => slide.asset?.url)) ||
             (item.mediaType === 'gallery' &&
               item.galleryImages?.some((image) => image.asset?.url))
         )
+
 
         return (
           <section
@@ -224,9 +221,7 @@ const projects = portfolioLive
                   ]}
                 >
                   {
-                    item.mediaType === 'videoSlideshow' ? (
-                      <VideoSlideshow slides={item.videoSlides} fade={item.videoTransitionDuration} />
-                    ) : item.mediaType === 'video' && item.video?.asset?.url ? (
+                    item.mediaType === 'video' && item.video?.asset?.url ? (
                       item.videoMode === 'loop' ? (
                         <div class="custom-video-player loop-video">
                           <video
@@ -301,27 +296,47 @@ const projects = portfolioLive
                           ) : null
                         ))}
                       </div>
-                    ) : item.mediaType === 'slideshow' && item.slides?.length ? (
+                    ) : item.mediaType === 'slideshow' &&
+                      ((item.slideshowType === 'film' && item.slideVideos?.length) ||
+                        (item.slideshowType !== 'film' && item.slides?.length)) ? (
                       <div
                         class="project-slideshow"
                         data-project-slideshow
+                        data-transition-time={project.slideshowTransitionTime ?? 4}
                       >
                         <div class="slideshow-viewport">
                           <div class="slideshow-track" data-slideshow-track>
-                            {item.slides.map((slide) => (
+                            {(item.slideshowType === 'film'
+                              ? item.slideVideos
+                              : item.slides
+                            )?.map((slide) => (
                               <div class="slideshow-slide">
-                                <img
-                                  src={sanityImage(slide.asset?.url, 1920)}
-                                  srcset={sanitySrcset(slide.asset?.url)}
-                                  sizes={item.width === 'half'
-                                    ? '(max-width: 700px) 100vw, 50vw'
-                                    : '100vw'}
-                                  width={slide.asset?.metadata?.dimensions?.width}
-                                  height={slide.asset?.metadata?.dimensions?.height}
-                                  alt={slide.alt || ''}
-                                  loading="lazy"
-                        decoding="async"
-                                />
+                                {item.slideshowType === 'film' ? (
+                                  <video
+                                    class="slideshow-film"
+                                    autoplay
+                                    muted
+                                    loop
+                                    playsinline
+                                    preload="metadata"
+                                    data-slideshow-film
+                                  >
+                                    <source src={slide.asset?.url} />
+                                  </video>
+                                ) : (
+                                  <img
+                                    src={sanityImage(slide.asset?.url, 1920)}
+                                    srcset={sanitySrcset(slide.asset?.url)}
+                                    sizes={item.width === 'half'
+                                      ? '(max-width: 700px) 100vw, 50vw'
+                                      : '100vw'}
+                                    width={slide.asset?.metadata?.dimensions?.width}
+                                    height={slide.asset?.metadata?.dimensions?.height}
+                                    alt={slide.alt || ''}
+                                    loading="lazy"
+                                    decoding="async"
+                                  />
+                                )}
                               </div>
                             ))}
                           </div>
@@ -367,10 +382,6 @@ const projects = portfolioLive
 
             <div class="mobile-media">
               {media.map((item, mediaIndex) => {
-                if (item.mediaType === 'videoSlideshow') {
-                  return <div class="mobile-media-item"><VideoSlideshow slides={item.videoSlides} fade={item.videoTransitionDuration} /></div>
-                }
-
                 if (item.mediaType === 'video' && item.video?.asset?.url) {
                   return (
                     <div class="mobile-media-item">
@@ -436,22 +447,83 @@ const projects = portfolioLive
                   )
                 }
 
-                if (mediaIndex !== firstImageMediaIndex) {
-                  return null
-                }
+                if (
+                  item.mediaType === 'slideshow' &&
+                  ((item.slideshowType === 'film' && item.slideVideos?.length) ||
+                    (item.slideshowType !== 'film' && item.slides?.length))
+                ) {
+                  const mobileSlideshowSlides =
+                    item.slideshowType === 'film' ? item.slideVideos : item.slides
 
-                if (mobileImages.length > 1) {
                   return (
                     <div
                       class="mobile-image-slideshow"
                       data-mobile-image-slideshow
+                      data-transition-time={project.slideshowTransitionTime ?? 4}
+                      aria-label={`${project.headline || 'Project'} slideshow`}
+                    >
+                      <div class="mobile-image-track" data-mobile-image-track>
+                        {mobileSlideshowSlides?.map((slide) => (
+                          <div class="mobile-image-slide">
+                            {item.slideshowType === 'film' ? (
+                              <video
+                                autoplay
+                                muted
+                                loop
+                                playsinline
+                                preload="metadata"
+                                data-mobile-slideshow-film
+                              >
+                                <source src={slide.asset?.url} />
+                              </video>
+                            ) : (
+                              <img
+                                src={sanityImage(slide.asset?.url, 1024)}
+                                srcset={sanitySrcset(slide.asset?.url)}
+                                sizes="100vw"
+                                width={slide.asset?.metadata?.dimensions?.width}
+                                height={slide.asset?.metadata?.dimensions?.height}
+                                alt={slide.alt || ''}
+                                loading="lazy"
+                                decoding="async"
+                                draggable="false"
+                              />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      <button
+                        class="mobile-slide-zone mobile-slide-zone-prev"
+                        type="button"
+                        data-mobile-slide-prev
+                        aria-label="Previous slide"
+                      ></button>
+
+                      <button
+                        class="mobile-slide-zone mobile-slide-zone-next"
+                        type="button"
+                        data-mobile-slide-next
+                        aria-label="Next slide"
+                      ></button>
+                    </div>
+                  )
+                }
+
+                if (mediaIndex !== firstMobileStaticMediaIndex) {
+                  return null
+                }
+
+                if (mobileStaticImages.length > 1) {
+                  return (
+                    <div
+                      class="mobile-image-slideshow"
+                      data-mobile-image-slideshow
+                      data-transition-time={project.slideshowTransitionTime ?? 4}
                       aria-label={`${project.headline || 'Project'} images`}
                     >
-                      <div
-                        class="mobile-image-track"
-                        data-mobile-image-track
-                      >
-                        {mobileImages.map((image) => (
+                      <div class="mobile-image-track" data-mobile-image-track>
+                        {mobileStaticImages.map((image) => (
                           <div class="mobile-image-slide">
                             <img
                               src={sanityImage(image.url, 1024)}
@@ -461,7 +533,7 @@ const projects = portfolioLive
                               height={image.height}
                               alt={image.alt}
                               loading="lazy"
-                        decoding="async"
+                              decoding="async"
                               draggable="false"
                             />
                           </div>
@@ -485,16 +557,16 @@ const projects = portfolioLive
                   )
                 }
 
-                if (mobileImages.length === 1) {
+                if (mobileStaticImages.length === 1) {
                   return (
                     <div class="mobile-media-item">
                       <img
-                        src={sanityImage(mobileImages[0].url, 1024)}
-                        srcset={sanitySrcset(mobileImages[0].url)}
+                        src={sanityImage(mobileStaticImages[0].url, 1024)}
+                        srcset={sanitySrcset(mobileStaticImages[0].url)}
                         sizes="100vw"
-                        width={mobileImages[0].width}
-                        height={mobileImages[0].height}
-                        alt={mobileImages[0].alt}
+                        width={mobileStaticImages[0].width}
+                        height={mobileStaticImages[0].height}
+                        alt={mobileStaticImages[0].alt}
                         loading="lazy"
                         decoding="async"
                       />
@@ -862,7 +934,8 @@ h2 {
     width: 100%;
   }
 
-  .slideshow-slide img {
+  .slideshow-slide img,
+  .slideshow-slide video {
     display: block;
     width: 100%;
     height: auto;
@@ -1178,12 +1251,14 @@ h2 {
     }
 
     .mobile-media-item,
-    .mobile-media-item > img {
+    .mobile-media-item > img,
+    .mobile-media-item > video {
       display: block;
       width: 100%;
     }
 
-    .mobile-media-item > img {
+    .mobile-media-item > img,
+    .mobile-media-item > video {
       height: auto;
     }
 
@@ -1208,7 +1283,8 @@ h2 {
       width: 100%;
     }
 
-    .mobile-image-slide img {
+    .mobile-image-slide img,
+    .mobile-image-slide video {
       display: block;
       width: 100%;
       height: auto;
@@ -1528,33 +1604,99 @@ h2 {
     loopPlaybackObserver.observe(video)
   })
 
-  // Unified mobile project-image slideshows
+  // Mobile slideshows. Keep each slideshow independent and make the
+  // last-to-first / first-to-last movement seamless with cloned edge slides.
   const mobileSlideshows = document.querySelectorAll(
     '[data-mobile-image-slideshow]'
   )
 
   mobileSlideshows.forEach((slideshow) => {
+    if (!(slideshow instanceof HTMLElement)) return
+
     const track = slideshow.querySelector('[data-mobile-image-track]')
-    const slides = Array.from(slideshow.querySelectorAll('.mobile-image-slide'))
+    const originalSlides = Array.from(
+      slideshow.querySelectorAll('.mobile-image-slide')
+    )
     const previousButton = slideshow.querySelector('[data-mobile-slide-prev]')
     const nextButton = slideshow.querySelector('[data-mobile-slide-next]')
 
     if (!(track instanceof HTMLElement)) return
     if (!(previousButton instanceof HTMLButtonElement)) return
     if (!(nextButton instanceof HTMLButtonElement)) return
-    if (!slides.length) return
+    if (!originalSlides.length) return
 
-    let current = 0
+    const transitionTime = Math.max(
+      500,
+      Number(slideshow.dataset.transitionTime || 4) * 1000
+    )
+
+    if (originalSlides.length === 1) {
+      const video = originalSlides[0].querySelector(
+        '[data-mobile-slideshow-film]'
+      )
+
+      if (video instanceof HTMLVideoElement) {
+        const playPromise = video.play()
+        if (playPromise instanceof Promise) playPromise.catch(() => {})
+      }
+
+      return
+    }
+
+    const firstClone = originalSlides[0].cloneNode(true)
+    const lastClone = originalSlides[originalSlides.length - 1].cloneNode(true)
+
+    if (!(firstClone instanceof HTMLElement)) return
+    if (!(lastClone instanceof HTMLElement)) return
+
+    firstClone.setAttribute('aria-hidden', 'true')
+    lastClone.setAttribute('aria-hidden', 'true')
+    firstClone.dataset.slideshowClone = 'first'
+    lastClone.dataset.slideshowClone = 'last'
+
+    track.appendChild(firstClone)
+    track.insertBefore(lastClone, originalSlides[0])
+
+    const slides = Array.from(track.querySelectorAll('.mobile-image-slide'))
+
+    let current = 1
     let pointerStartX = null
     let autoplayInterval = null
+    let isAnimating = false
 
-    const render = () => {
+    const setTransform = (animate = true) => {
+      track.style.transition = animate
+        ? 'transform 420ms cubic-bezier(.76, 0, .24, 1)'
+        : 'none'
       track.style.transform = `translateX(-${current * 100}%)`
     }
 
-    const show = (index) => {
-      current = (index + slides.length) % slides.length
-      render()
+    const syncFilms = () => {
+      slides.forEach((slide, index) => {
+        const video = slide.querySelector('[data-mobile-slideshow-film]')
+        if (!(video instanceof HTMLVideoElement)) return
+
+        if (index === current && slideshow.offsetParent !== null) {
+          video.preload = 'auto'
+
+          try {
+            video.currentTime = 0
+          } catch {}
+
+          const playPromise = video.play()
+          if (playPromise instanceof Promise) playPromise.catch(() => {})
+        } else if (!video.paused) {
+          video.pause()
+        }
+      })
+    }
+
+    const moveTo = (index) => {
+      if (isAnimating) return
+      current = index
+      isAnimating = true
+      setTransform(true)
+      syncFilms()
     }
 
     const stopAutoplay = () => {
@@ -1567,22 +1709,38 @@ h2 {
     const startAutoplay = () => {
       stopAutoplay()
 
-      if (slides.length < 2) return
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
       autoplayInterval = window.setInterval(() => {
-        show(current + 1)
-      }, 4000)
+        moveTo(current + 1)
+      }, transitionTime)
     }
+
+    track.addEventListener('transitionend', (event) => {
+      if (event.propertyName !== 'transform') return
+
+      if (current === slides.length - 1) {
+        current = 1
+        setTransform(false)
+      } else if (current === 0) {
+        current = slides.length - 2
+        setTransform(false)
+      }
+
+      isAnimating = false
+      syncFilms()
+    })
 
     previousButton.addEventListener('click', () => {
       stopAutoplay()
-      show(current - 1)
+      moveTo(current - 1)
+      startAutoplay()
     })
 
     nextButton.addEventListener('click', () => {
       stopAutoplay()
-      show(current + 1)
+      moveTo(current + 1)
+      startAutoplay()
     })
 
     slideshow.addEventListener('pointerdown', (event) => {
@@ -1596,20 +1754,23 @@ h2 {
       const distance = event.clientX - pointerStartX
       pointerStartX = null
 
-      if (Math.abs(distance) < 40) return
-
-      if (distance < 0) {
-        show(current + 1)
-      } else {
-        show(current - 1)
+      if (Math.abs(distance) >= 40) {
+        moveTo(distance < 0 ? current + 1 : current - 1)
       }
+
+      startAutoplay()
     })
 
     slideshow.addEventListener('pointercancel', () => {
       pointerStartX = null
+      startAutoplay()
     })
 
-    render()
+    setTransform(false)
+    syncFilms()
+    requestAnimationFrame(() => {
+      track.style.transition = 'transform 420ms cubic-bezier(.76, 0, .24, 1)'
+    })
     startAutoplay()
   })
 
@@ -1883,12 +2044,15 @@ h2 {
     }
   })
 
-  // Individual project media slideshows
+  // Individual project media slideshows. Use cloned edge slides so looping
+  // continues in the same direction instead of visibly rewinding at the end.
   const slideshows = document.querySelectorAll('[data-project-slideshow]')
 
   slideshows.forEach((slideshow) => {
+    if (!(slideshow instanceof HTMLElement)) return
+
     const track = slideshow.querySelector('[data-slideshow-track]')
-    const slides = Array.from(
+    const originalSlides = Array.from(
       slideshow.querySelectorAll('.slideshow-slide')
     )
     const previousButton = slideshow.querySelector('[data-slideshow-prev]')
@@ -1897,30 +2061,80 @@ h2 {
     if (!(track instanceof HTMLElement)) return
     if (!(previousButton instanceof HTMLButtonElement)) return
     if (!(nextButton instanceof HTMLButtonElement)) return
-    if (slides.length < 2) return
+    if (!originalSlides.length) return
 
-    let current = 0
+    const transitionTime = Math.max(
+      500,
+      Number(slideshow.dataset.transitionTime || 4) * 1000
+    )
+
+    if (originalSlides.length === 1) {
+      const video = originalSlides[0].querySelector('[data-slideshow-film]')
+      if (video instanceof HTMLVideoElement) {
+        const playPromise = video.play()
+        if (playPromise instanceof Promise) playPromise.catch(() => {})
+      }
+      return
+    }
+
+    const firstClone = originalSlides[0].cloneNode(true)
+    const lastClone = originalSlides[originalSlides.length - 1].cloneNode(true)
+
+    if (!(firstClone instanceof HTMLElement)) return
+    if (!(lastClone instanceof HTMLElement)) return
+
+    firstClone.setAttribute('aria-hidden', 'true')
+    lastClone.setAttribute('aria-hidden', 'true')
+    firstClone.dataset.slideshowClone = 'first'
+    lastClone.dataset.slideshowClone = 'last'
+
+    track.appendChild(firstClone)
+    track.insertBefore(lastClone, originalSlides[0])
+
+    const slides = Array.from(track.querySelectorAll('.slideshow-slide'))
+
+    let current = 1
     let interval
+    let isAnimating = false
 
-    function renderSlide() {
+    const setTransform = (animate = true) => {
+      track.style.transition = animate
+        ? 'transform 500ms cubic-bezier(.76, 0, .24, 1)'
+        : 'none'
       track.style.transform = `translateX(-${current * 100}%)`
     }
 
-    function showSlide(index) {
-      current = (index + slides.length) % slides.length
-      renderSlide()
+    const syncFilms = () => {
+      slides.forEach((slide, index) => {
+        const video = slide.querySelector('[data-slideshow-film]')
+        if (!(video instanceof HTMLVideoElement)) return
+
+        if (index === current && slideshow.offsetParent !== null) {
+          video.preload = 'auto'
+
+          try {
+            video.currentTime = 0
+          } catch {}
+
+          const playPromise = video.play()
+          if (playPromise instanceof Promise) playPromise.catch(() => {})
+        } else if (!video.paused) {
+          video.pause()
+        }
+      })
     }
 
-    function nextSlide() {
-      showSlide(current + 1)
-    }
-
-    function previousSlide() {
-      showSlide(current - 1)
+    const moveTo = (index) => {
+      if (isAnimating) return
+      current = index
+      isAnimating = true
+      setTransform(true)
+      syncFilms()
     }
 
     function startAutoplay() {
-      interval = window.setInterval(nextSlide, 4000)
+      stopAutoplay()
+      interval = window.setInterval(() => moveTo(current + 1), transitionTime)
     }
 
     function stopAutoplay() {
@@ -1930,19 +2144,40 @@ h2 {
       }
     }
 
+    track.addEventListener('transitionend', (event) => {
+      if (event.propertyName !== 'transform') return
+
+      if (current === slides.length - 1) {
+        current = 1
+        setTransform(false)
+      } else if (current === 0) {
+        current = slides.length - 2
+        setTransform(false)
+      }
+
+      isAnimating = false
+      syncFilms()
+    })
+
     previousButton.addEventListener('click', (event) => {
       event.stopPropagation()
       stopAutoplay()
-      previousSlide()
+      moveTo(current - 1)
+      startAutoplay()
     })
 
     nextButton.addEventListener('click', (event) => {
       event.stopPropagation()
       stopAutoplay()
-      nextSlide()
+      moveTo(current + 1)
+      startAutoplay()
     })
 
-    renderSlide()
+    setTransform(false)
+    syncFilms()
+    requestAnimationFrame(() => {
+      track.style.transition = 'transform 500ms cubic-bezier(.76, 0, .24, 1)'
+    })
     startAutoplay()
   })
 
