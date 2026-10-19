@@ -560,7 +560,6 @@ const projects = portfolioLive
                 if (mobileStaticImages.length === 1) {
                   return (
                     <div class="mobile-media-item">
-<<<<<<< HEAD
                       <img
                         src={sanityImage(mobileStaticImages[0].url, 1024)}
                         srcset={sanitySrcset(mobileStaticImages[0].url)}
@@ -571,31 +570,6 @@ const projects = portfolioLive
                         loading="lazy"
                         decoding="async"
                       />
-=======
-                      {mobileImages[0].type === 'video' ? (
-                        <video
-                          autoplay
-                          muted
-                          loop
-                          playsinline
-                          preload="metadata"
-                          data-mobile-slideshow-film
-                        >
-                          <source src={mobileImages[0].url} />
-                        </video>
-                      ) : (
-                        <img
-                          src={sanityImage(mobileImages[0].url, 1024)}
-                          srcset={sanitySrcset(mobileImages[0].url)}
-                          sizes="100vw"
-                          width={mobileImages[0].width}
-                          height={mobileImages[0].height}
-                          alt={mobileImages[0].alt}
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      )}
->>>>>>> 1386f09 (updated slideshow)
                     </div>
                   )
                 }
@@ -1704,15 +1678,6 @@ h2 {
 
         if (index === current && slideshow.offsetParent !== null) {
           video.preload = 'auto'
-<<<<<<< HEAD
-=======
-
-          try {
-            video.currentTime = 0
-          } catch {}
-
-          const playPromise = video.play()
->>>>>>> 1386f09 (updated slideshow)
 
           try {
             video.currentTime = 0
@@ -2146,15 +2111,6 @@ h2 {
 
         if (index === current && slideshow.offsetParent !== null) {
           video.preload = 'auto'
-<<<<<<< HEAD
-=======
-
-          try {
-            video.currentTime = 0
-          } catch {}
-
-          const playPromise = video.play()
->>>>>>> 1386f09 (updated slideshow)
 
           try {
             video.currentTime = 0
