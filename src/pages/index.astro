@@ -38,6 +38,7 @@ const projects = portfolioLive
       slideshowType,
       width,
       alt,
+      lightbox,
 
       image {
         asset-> {
@@ -73,6 +74,7 @@ const projects = portfolioLive
 
       slides[] {
         alt,
+        lightbox,
         asset-> {
           url,
           metadata {
@@ -95,6 +97,7 @@ const projects = portfolioLive
 
       galleryImages[] {
         alt,
+        lightbox,
         asset-> {
           url,
           originalFilename,
@@ -143,6 +146,18 @@ const projects = portfolioLive
 
 {portfolioLive ? (
   <Layout>
+    <div class="image-lightbox" data-image-lightbox hidden aria-hidden="true">
+      <button
+        class="image-lightbox-close"
+        type="button"
+        data-image-lightbox-close
+        aria-label="Close image"
+      >
+        ×
+      </button>
+      <img data-image-lightbox-content alt="" />
+    </div>
+
     <main>
     {
       projects.map((project) => {
@@ -158,6 +173,7 @@ const projects = portfolioLive
                 key: item._key,
                 url: item.image.asset.url,
                 alt: item.alt || '',
+                lightbox: item.lightbox === true,
                 width: item.image.asset.metadata?.dimensions?.width,
                 height: item.image.asset.metadata?.dimensions?.height,
               },
@@ -171,6 +187,7 @@ const projects = portfolioLive
                 key: `${item._key}-gallery-${index}`,
                 url: image.asset.url,
                 alt: image.alt || image.asset.originalFilename || '',
+                lightbox: image.lightbox === true,
                 width: image.asset.metadata?.dimensions?.width,
                 height: image.asset.metadata?.dimensions?.height,
               }))
@@ -290,6 +307,8 @@ const projects = portfolioLive
                               width={image.asset.metadata?.dimensions?.width}
                               height={image.asset.metadata?.dimensions?.height}
                               alt={image.alt || image.asset.originalFilename || ''}
+                              data-lightbox-image={image.lightbox ? '' : undefined}
+                              data-lightbox-src={image.lightbox ? image.asset.url : undefined}
                               loading="lazy"
                         decoding="async"
                             />
@@ -333,6 +352,8 @@ const projects = portfolioLive
                                     width={slide.asset?.metadata?.dimensions?.width}
                                     height={slide.asset?.metadata?.dimensions?.height}
                                     alt={slide.alt || ''}
+                                    data-lightbox-image={slide.lightbox ? '' : undefined}
+                                    data-lightbox-src={slide.lightbox ? slide.asset?.url : undefined}
                                     loading="lazy"
                                     decoding="async"
                                   />
@@ -370,6 +391,8 @@ const projects = portfolioLive
                         width={item.image.asset.metadata?.dimensions?.width}
                         height={item.image.asset.metadata?.dimensions?.height}
                         alt={item.alt || ''}
+                        data-lightbox-image={item.lightbox ? '' : undefined}
+                        data-lightbox-src={item.lightbox ? item.image.asset.url : undefined}
                         loading="lazy"
                         decoding="async"
                       />
@@ -484,6 +507,8 @@ const projects = portfolioLive
                                 width={slide.asset?.metadata?.dimensions?.width}
                                 height={slide.asset?.metadata?.dimensions?.height}
                                 alt={slide.alt || ''}
+                                data-lightbox-image={slide.lightbox ? '' : undefined}
+                                data-lightbox-src={slide.lightbox ? slide.asset?.url : undefined}
                                 loading="lazy"
                                 decoding="async"
                                 draggable="false"
@@ -532,6 +557,8 @@ const projects = portfolioLive
                               width={image.width}
                               height={image.height}
                               alt={image.alt}
+                              data-lightbox-image={image.lightbox ? '' : undefined}
+                              data-lightbox-src={image.lightbox ? image.url : undefined}
                               loading="lazy"
                               decoding="async"
                               draggable="false"
@@ -567,6 +594,8 @@ const projects = portfolioLive
                         width={mobileStaticImages[0].width}
                         height={mobileStaticImages[0].height}
                         alt={mobileStaticImages[0].alt}
+                        data-lightbox-image={mobileStaticImages[0].lightbox ? '' : undefined}
+                        data-lightbox-src={mobileStaticImages[0].lightbox ? mobileStaticImages[0].url : undefined}
                         loading="lazy"
                         decoding="async"
                       />
@@ -1374,9 +1403,122 @@ h2 {
       transition: none;
     }
   }
+
+
+  [data-lightbox-image] {
+    cursor: zoom-in;
+  }
+
+  .image-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    padding: 5vh 5vw;
+    background: rgba(0, 0, 0, 0.9);
+  }
+
+  .image-lightbox[hidden] {
+    display: none;
+  }
+
+  .image-lightbox img {
+    display: block;
+    width: auto;
+    height: auto;
+    max-width: min(90vw, 2000px);
+    max-height: 90vh;
+    object-fit: contain;
+    user-select: none;
+  }
+
+  .image-lightbox-close {
+    position: absolute;
+    top: 20px;
+    right: 24px;
+    z-index: 1;
+    appearance: none;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: #fff;
+    font: inherit;
+    font-size: 32px;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  :global(html.lightbox-open) {
+    overflow: hidden;
+  }
+
 </style>
 
 <script>
+
+  // Optional per-image lightbox.
+  const imageLightbox = document.querySelector('[data-image-lightbox]')
+  const imageLightboxContent = document.querySelector('[data-image-lightbox-content]')
+  const imageLightboxClose = document.querySelector('[data-image-lightbox-close]')
+
+  const closeImageLightbox = () => {
+    if (!(imageLightbox instanceof HTMLElement)) return
+    if (!(imageLightboxContent instanceof HTMLImageElement)) return
+
+    imageLightbox.hidden = true
+    imageLightbox.setAttribute('aria-hidden', 'true')
+    imageLightboxContent.removeAttribute('src')
+    imageLightboxContent.alt = ''
+    document.documentElement.classList.remove('lightbox-open')
+  }
+
+  const openImageLightbox = (source, alt = '') => {
+    if (!(imageLightbox instanceof HTMLElement)) return
+    if (!(imageLightboxContent instanceof HTMLImageElement)) return
+    if (!source) return
+
+    imageLightboxContent.src = source
+    imageLightboxContent.alt = alt
+    imageLightbox.hidden = false
+    imageLightbox.setAttribute('aria-hidden', 'false')
+    document.documentElement.classList.add('lightbox-open')
+  }
+
+  document.addEventListener('click', (event) => {
+    const target = event.target
+    if (!(target instanceof Element)) return
+
+    const trigger = target.closest('[data-lightbox-image]')
+
+    if (trigger instanceof HTMLImageElement) {
+      const source = trigger.dataset.lightboxSrc
+      if (!source) return
+
+      event.preventDefault()
+      event.stopPropagation()
+      openImageLightbox(source, trigger.alt)
+      return
+    }
+
+    if (target === imageLightbox) {
+      closeImageLightbox()
+    }
+  })
+
+  imageLightboxClose?.addEventListener('click', closeImageLightbox)
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return
+    if (!(imageLightbox instanceof HTMLElement) || imageLightbox.hidden) return
+
+    event.stopImmediatePropagation()
+    closeImageLightbox()
+  })
+
+
   const holdingPage = document.querySelector('[data-holding-page]')
   const holdingLogo = document.querySelector('[data-holding-logo]')
 

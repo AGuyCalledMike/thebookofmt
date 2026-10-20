@@ -11,6 +11,7 @@ type SanityMediaAsset = {
 type SlideValue = {
   _key: string
   _type: 'image' | 'file'
+  lightbox?: boolean
   asset: {
     _type: 'reference'
     _ref: string
@@ -121,6 +122,7 @@ function SlideshowMediaPickerInput({props, mediaKind}: {props: any; mediaKind: M
   const [open, setOpen] = useState(false)
   const [assets, setAssets] = useState<SanityMediaAsset[]>([])
   const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [lightboxIds, setLightboxIds] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -169,12 +171,32 @@ function SlideshowMediaPickerInput({props, mediaKind}: {props: any; mediaKind: M
 
   const openPicker = async () => {
     setSelectedIds(currentAssetIds)
+    setLightboxIds(
+      isVideo
+        ? []
+        : value
+            .filter((item) => item.lightbox === true && item.asset?._ref)
+            .map((item) => item.asset._ref),
+    )
     setOpen(true)
     await loadAssets()
   }
 
   const toggle = (id: string) => {
-    setSelectedIds((current) =>
+    setSelectedIds((current) => {
+      if (current.includes(id)) {
+        setLightboxIds((lightboxes) => lightboxes.filter((item) => item !== id))
+        return current.filter((item) => item !== id)
+      }
+
+      return [...current, id]
+    })
+  }
+
+  const toggleLightbox = (id: string) => {
+    if (isVideo || !selectedIds.includes(id)) return
+
+    setLightboxIds((current) =>
       current.includes(id)
         ? current.filter((item) => item !== id)
         : [...current, id],
@@ -184,14 +206,19 @@ function SlideshowMediaPickerInput({props, mediaKind}: {props: any; mediaKind: M
   const useSelected = () => {
     if (selectedIds.length < 2) return
 
-    const nextValue: SlideValue[] = selectedIds.map((assetId) => ({
-      _key: makeKey(),
-      _type: isVideo ? 'file' : 'image',
-      asset: {
-        _type: 'reference',
-        _ref: assetId,
-      },
-    }))
+    const nextValue: SlideValue[] = selectedIds.map((assetId) => {
+      const existing = value.find((item) => item.asset?._ref === assetId)
+
+      return {
+        _key: existing?._key || makeKey(),
+        _type: isVideo ? 'file' : 'image',
+        ...(isVideo ? {} : {lightbox: lightboxIds.includes(assetId)}),
+        asset: {
+          _type: 'reference',
+          _ref: assetId,
+        },
+      }
+    })
 
     props.onChange(set(nextValue))
     setOpen(false)
@@ -253,45 +280,69 @@ function SlideshowMediaPickerInput({props, mediaKind}: {props: any; mediaKind: M
               <div style={styles.grid}>
                 {assets.map((asset) => {
                   const selected = selectedIds.includes(asset._id)
+                  const lightboxEnabled = lightboxIds.includes(asset._id)
 
                   return (
-                    <button
-                      key={asset._id}
-                      type="button"
-                      onClick={() => toggle(asset._id)}
-                      style={styles.tileButton}
-                    >
-                      <div
-                        style={{
-                          ...styles.tile,
-                          outline: selected ? '2px solid currentColor' : 'none',
-                        }}
+                    <div key={asset._id} style={{minWidth: 0}}>
+                      <button
+                        type="button"
+                        onClick={() => toggle(asset._id)}
+                        style={styles.tileButton}
                       >
-                        <input
-                          type="checkbox"
-                          checked={selected}
-                          readOnly
-                          aria-label={selected ? 'Selected' : 'Not selected'}
-                          style={styles.checkbox}
-                        />
+                        <div
+                          style={{
+                            ...styles.tile,
+                            outline: selected ? '2px solid currentColor' : 'none',
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selected}
+                            readOnly
+                            aria-label={selected ? 'Selected' : 'Not selected'}
+                            style={styles.checkbox}
+                          />
 
-                        <div style={styles.previewWrap}>
-                          {isVideo ? (
-                            <div style={styles.videoPlaceholder}>FILM</div>
-                          ) : (
-                            <img
-                              src={`${asset.url}?auto=format&fit=crop&w=600&h=600&q=78`}
-                              alt=""
-                              style={styles.image}
-                            />
-                          )}
-                        </div>
+                          <div style={styles.previewWrap}>
+                            {isVideo ? (
+                              <div style={styles.videoPlaceholder}>FILM</div>
+                            ) : (
+                              <img
+                                src={`${asset.url}?auto=format&fit=crop&w=600&h=600&q=78`}
+                                alt=""
+                                style={styles.image}
+                              />
+                            )}
+                          </div>
 
-                        <div style={styles.filename}>
-                          {asset.originalFilename || (isVideo ? 'Film' : 'Image')}
+                          <div style={styles.filename}>
+                            {asset.originalFilename || (isVideo ? 'Film' : 'Image')}
+                          </div>
                         </div>
-                      </div>
-                    </button>
+                      </button>
+
+                      {!isVideo ? (
+                        <label
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '7px',
+                            padding: '8px 2px 0',
+                            fontSize: '12px',
+                            opacity: selected ? 1 : 0.45,
+                            cursor: selected ? 'pointer' : 'default',
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={lightboxEnabled}
+                            disabled={!selected}
+                            onChange={() => toggleLightbox(asset._id)}
+                          />
+                          Lightbox
+                        </label>
+                      ) : null}
+                    </div>
                   )
                 })}
               </div>

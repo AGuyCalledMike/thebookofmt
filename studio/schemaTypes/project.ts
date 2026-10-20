@@ -92,6 +92,15 @@ defineField({
             }),
 
             defineField({
+              name: 'lightbox',
+              title: 'Lightbox',
+              description: 'Allow this image to open in a large overlay.',
+              type: 'boolean',
+              initialValue: false,
+              hidden: ({parent}) => parent?.mediaType !== 'image',
+            }),
+
+            defineField({
               name: 'video',
               title: 'Video',
               type: 'file',
@@ -184,6 +193,13 @@ defineField({
                       name: 'alt',
                       title: 'Alt text',
                       type: 'string',
+                    }),
+                    defineField({
+                      name: 'lightbox',
+                      title: 'Lightbox',
+                      description: 'Allow this image to open in a large overlay.',
+                      type: 'boolean',
+                      initialValue: false,
                     }),
                   ],
                   preview: {
@@ -313,6 +329,13 @@ defineField({
                       name: 'alt',
                       title: 'Alt text',
                       type: 'string',
+                    }),
+                    defineField({
+                      name: 'lightbox',
+                      title: 'Lightbox',
+                      description: 'Allow this image to open in a large overlay.',
+                      type: 'boolean',
+                      initialValue: false,
                     }),
                   ],
                   preview: {
