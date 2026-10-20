@@ -194,13 +194,6 @@ defineField({
                       title: 'Alt text',
                       type: 'string',
                     }),
-                    defineField({
-                      name: 'lightbox',
-                      title: 'Lightbox',
-                      description: 'Allow this image to open in a large overlay.',
-                      type: 'boolean',
-                      initialValue: false,
-                    }),
                   ],
                   preview: {
                     select: {
@@ -352,6 +345,15 @@ defineField({
                   },
                 },
               ],
+            }),
+
+            defineField({
+              name: 'galleryLightbox',
+              title: 'Lightbox',
+              description: 'Allow all four gallery images to open in a large overlay.',
+              type: 'boolean',
+              initialValue: false,
+              hidden: ({parent}) => parent?.mediaType !== 'gallery',
             }),
 
             defineField({

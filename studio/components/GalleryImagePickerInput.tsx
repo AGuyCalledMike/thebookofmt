@@ -96,7 +96,6 @@ const styles = {
 type GalleryImageValue = {
   _key: string
   _type: 'image'
-  lightbox?: boolean
   asset: {
     _type: 'reference'
     _ref: string
@@ -110,7 +109,6 @@ export default function GalleryImagePickerInput(props: any) {
   const [open, setOpen] = useState(false)
   const [images, setImages] = useState<SanityImageAsset[]>([])
   const [selectedIds, setSelectedIds] = useState<string[]>([])
-  const [lightboxIds, setLightboxIds] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -146,11 +144,6 @@ export default function GalleryImagePickerInput(props: any) {
 
   const openPicker = async () => {
     setSelectedIds(currentAssetIds.slice(0, 4))
-    setLightboxIds(
-      value
-        .filter((item) => item.lightbox === true && item.asset?._ref)
-        .map((item) => item.asset._ref),
-    )
     setOpen(true)
     await loadImages()
   }
@@ -158,7 +151,6 @@ export default function GalleryImagePickerInput(props: any) {
   const toggle = (id: string) => {
     setSelectedIds((current) => {
       if (current.includes(id)) {
-        setLightboxIds((lightboxes) => lightboxes.filter((item) => item !== id))
         return current.filter((item) => item !== id)
       }
 
@@ -167,32 +159,17 @@ export default function GalleryImagePickerInput(props: any) {
     })
   }
 
-  const toggleLightbox = (id: string) => {
-    if (!selectedIds.includes(id)) return
-
-    setLightboxIds((current) =>
-      current.includes(id)
-        ? current.filter((item) => item !== id)
-        : [...current, id],
-    )
-  }
-
   const useSelected = () => {
     if (selectedIds.length !== 4) return
 
-    const nextValue: GalleryImageValue[] = selectedIds.map((assetId) => {
-      const existing = value.find((item) => item.asset?._ref === assetId)
-
-      return {
-        _key: existing?._key || makeKey(),
-        _type: 'image',
-        lightbox: lightboxIds.includes(assetId),
-        asset: {
-          _type: 'reference',
-          _ref: assetId,
-        },
-      }
-    })
+    const nextValue: GalleryImageValue[] = selectedIds.map((assetId) => ({
+      _key: makeKey(),
+      _type: 'image',
+      asset: {
+        _type: 'reference',
+        _ref: assetId,
+      },
+    }))
 
     props.onChange(set(nextValue))
     setOpen(false)
@@ -255,68 +232,46 @@ export default function GalleryImagePickerInput(props: any) {
                 {images.map((image) => {
                   const selected = selectedIds.includes(image._id)
                   const disabled = selectedIds.length >= 4 && !selected
-                  const lightboxEnabled = lightboxIds.includes(image._id)
 
                   return (
-                    <div key={image._id} style={{minWidth: 0}}>
-                      <button
-                        type="button"
-                        disabled={disabled}
-                        onClick={() => toggle(image._id)}
+                    <button
+                      key={image._id}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => toggle(image._id)}
+                      style={{
+                        ...styles.tileButton,
+                        opacity: disabled ? 0.4 : 1,
+                        cursor: disabled ? 'default' : 'pointer',
+                      }}
+                    >
+                      <div
                         style={{
-                          ...styles.tileButton,
-                          opacity: disabled ? 0.4 : 1,
-                          cursor: disabled ? 'default' : 'pointer',
-                        }}
-                      >
-                        <div
-                          style={{
-                            ...styles.tile,
-                            outline: selected ? '2px solid currentColor' : 'none',
-                          }}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selected}
-                            readOnly
-                            aria-label={selected ? 'Selected' : 'Not selected'}
-                            style={styles.checkbox}
-                          />
-
-                          <div style={styles.imageWrap}>
-                            <img
-                              src={`${image.url}?auto=format&fit=crop&w=600&h=600&q=78`}
-                              alt=""
-                              style={styles.image}
-                            />
-                          </div>
-
-                          <div style={styles.filename}>
-                            {image.originalFilename || 'Image'}
-                          </div>
-                        </div>
-                      </button>
-
-                      <label
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '7px',
-                          padding: '8px 2px 0',
-                          fontSize: '12px',
-                          opacity: selected ? 1 : 0.45,
-                          cursor: selected ? 'pointer' : 'default',
+                          ...styles.tile,
+                          outline: selected ? '2px solid currentColor' : 'none',
                         }}
                       >
                         <input
                           type="checkbox"
-                          checked={lightboxEnabled}
-                          disabled={!selected}
-                          onChange={() => toggleLightbox(image._id)}
+                          checked={selected}
+                          readOnly
+                          aria-label={selected ? 'Selected' : 'Not selected'}
+                          style={styles.checkbox}
                         />
-                        Lightbox
-                      </label>
-                    </div>
+
+                        <div style={styles.imageWrap}>
+                          <img
+                            src={`${image.url}?auto=format&fit=crop&w=600&h=600&q=78`}
+                            alt=""
+                            style={styles.image}
+                          />
+                        </div>
+
+                        <div style={styles.filename}>
+                          {image.originalFilename || 'Image'}
+                        </div>
+                      </div>
+                    </button>
                   )
                 })}
               </div>

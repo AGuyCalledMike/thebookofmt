@@ -39,6 +39,7 @@ const projects = portfolioLive
       width,
       alt,
       lightbox,
+      galleryLightbox,
 
       image {
         asset-> {
@@ -97,7 +98,6 @@ const projects = portfolioLive
 
       galleryImages[] {
         alt,
-        lightbox,
         asset-> {
           url,
           originalFilename,
@@ -187,7 +187,7 @@ const projects = portfolioLive
                 key: `${item._key}-gallery-${index}`,
                 url: image.asset.url,
                 alt: image.alt || image.asset.originalFilename || '',
-                lightbox: image.lightbox === true,
+                lightbox: item.galleryLightbox === true,
                 width: image.asset.metadata?.dimensions?.width,
                 height: image.asset.metadata?.dimensions?.height,
               }))
@@ -307,8 +307,8 @@ const projects = portfolioLive
                               width={image.asset.metadata?.dimensions?.width}
                               height={image.asset.metadata?.dimensions?.height}
                               alt={image.alt || image.asset.originalFilename || ''}
-                              data-lightbox-image={image.lightbox ? '' : undefined}
-                              data-lightbox-src={image.lightbox ? image.asset.url : undefined}
+                              data-lightbox-image={item.galleryLightbox ? '' : undefined}
+                              data-lightbox-src={item.galleryLightbox ? image.asset.url : undefined}
                               loading="lazy"
                         decoding="async"
                             />
