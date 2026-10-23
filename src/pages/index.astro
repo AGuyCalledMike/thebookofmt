@@ -245,7 +245,7 @@ const projects = portfolioLive
                             muted
                             loop
                             playsinline
-                            preload="none"
+                            preload="metadata"
                           >
                             <source src={item.video.asset.url} />
                           </video>
@@ -415,7 +415,7 @@ const projects = portfolioLive
                               muted
                               loop
                               playsinline
-                              preload="none"
+                              preload="metadata"
                               poster={sanityImage(item.poster?.asset?.url, 1600)}
                             >
                               <source src={item.video.asset.url} />
@@ -1696,28 +1696,28 @@ h2 {
     filmViewportObserver.observe(video)
   })
 
-  // Loop videos load shortly before view, play only while visible,
-  // and pause once they leave the viewport.
-  const loopVideos = document.querySelectorAll('.loop-video video')
+  // Loop videos begin loading progressively once the page is idle,
+  // but only play while they are actually visible.
+  const loopVideos = Array.from(
+    document.querySelectorAll('.loop-video video')
+  ).filter((video) => video instanceof HTMLVideoElement)
 
-  const loopPreloadObserver = new IntersectionObserver(
-    (entries, observer) => {
-      entries.forEach((entry) => {
-        if (!entry.isIntersecting) return
+  const preloadLoopVideos = () => {
+    loopVideos.forEach((video, index) => {
+      window.setTimeout(() => {
+        if (!(video instanceof HTMLVideoElement)) return
 
-        const video = entry.target
+        video.preload = 'auto'
+        video.load()
+      }, index * 300)
+    })
+  }
 
-        if (video instanceof HTMLVideoElement) {
-          video.preload = 'auto'
-          video.load()
-          observer.unobserve(video)
-        }
-      })
-    },
-    {
-      rootMargin: '500px 0px',
-    }
-  )
+  if ('requestIdleCallback' in window) {
+    window.requestIdleCallback(preloadLoopVideos)
+  } else {
+    window.setTimeout(preloadLoopVideos, 800)
+  }
 
   const loopPlaybackObserver = new IntersectionObserver(
     (entries) => {
@@ -1742,7 +1742,6 @@ h2 {
   )
 
   loopVideos.forEach((video) => {
-    loopPreloadObserver.observe(video)
     loopPlaybackObserver.observe(video)
   })
 
