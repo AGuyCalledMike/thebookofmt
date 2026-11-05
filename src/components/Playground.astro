@@ -5,17 +5,51 @@ const imageWidths = [320, 480, 640, 800, 1024, 1280]
 
 function sanityImage(url, width) {
   if (!url) return undefined
+
   const separator = url.includes('?') ? '&' : '?'
+
   return `${url}${separator}auto=format&fit=max&w=${width}&q=82`
 }
 
 function sanitySrcset(url) {
   if (!url) return undefined
-  return imageWidths.map((width) => `${sanityImage(url, width)} ${width}w`).join(', ')
+
+  return imageWidths
+    .map((width) => `${sanityImage(url, width)} ${width}w`)
+    .join(', ')
 }
 
 const playground = await sanityClient.fetch(`
   *[_type == "playground"][0] {
+    items[] {
+      _key,
+      mediaType,
+      videoMode,
+      alt,
+      hidden,
+
+      image {
+        asset-> {
+          url,
+          originalFilename,
+          metadata {
+            dimensions {
+              width,
+              height,
+              aspectRatio
+            }
+          }
+        }
+      },
+
+      video {
+        asset-> {
+          url,
+          originalFilename
+        }
+      }
+    },
+
     images[] {
       _key,
       alt,
@@ -23,9 +57,16 @@ const playground = await sanityClient.fetch(`
       asset-> {
         url,
         originalFilename,
-        metadata { dimensions { width, height, aspectRatio } }
+        metadata {
+          dimensions {
+            width,
+            height,
+            aspectRatio
+          }
+        }
       }
     },
+
     videos[] {
       _key,
       hidden,
@@ -38,60 +79,86 @@ const playground = await sanityClient.fetch(`
   }
 `)
 
-const images = playground?.images?.filter((item) => !item.hidden) ?? []
-const videos = playground?.videos?.filter((item) => !item.hidden) ?? []
+const mixedItems = playground?.items?.filter((item) => !item.hidden) ?? []
+
+// Fallback keeps the current Playground visible until the new mixed feed is populated.
+const legacyItems = mixedItems.length
+  ? []
+  : [
+      ...(playground?.images ?? [])
+        .filter((item) => !item.hidden)
+        .map((item) => ({
+          _key: item._key,
+          mediaType: 'image',
+          alt: item.alt,
+          image: {
+            asset: item.asset,
+          },
+        })),
+
+      ...(playground?.videos ?? [])
+        .filter((item) => !item.hidden)
+        .map((item) => ({
+          _key: item._key,
+          mediaType: 'video',
+          videoMode: item.videoMode || 'loop',
+          video: {
+            asset: item.asset,
+          },
+        })),
+    ]
+
+const items = mixedItems.length ? mixedItems : legacyItems
 ---
 
 <div class="playground-panel">
-  {images.length ? (
-    <div class="playground-masonry">
-      {images.map((item) => (
-        <figure class="playground-item">
-          <img
-            class="image-reveal"
-            src={sanityImage(item.asset?.url, 800)}
-            srcset={sanitySrcset(item.asset?.url)}
-            sizes="(max-width: 700px) 50vw, (max-width: 900px) 50vw, 25vw"
-            width={item.asset?.metadata?.dimensions?.width}
-            height={item.asset?.metadata?.dimensions?.height}
-            alt={item.alt || item.asset?.originalFilename || ''}
-            loading="lazy"
-            decoding="async"
-          />
-        </figure>
-      ))}
-    </div>
-  ) : null}
-
-  {videos.length ? (
-    <div class="playground-masonry playground-videos">
-      {videos.map((item) => (
-        <figure class="playground-item">
-          {item.videoMode === 'film' ? (
-            <video
-              class="image-reveal playground-film"
-              controls
-              playsinline
-              preload="metadata"
-            >
-              <source src={item.asset?.url} />
-            </video>
-          ) : (
-            <video
-              class="image-reveal playground-loop"
-              autoplay
-              muted
-              loop
-              playsinline
-              preload="metadata"
-            >
-              <source src={item.asset?.url} />
-            </video>
-          )}
-        </figure>
-      ))}
-    </div>
-  ) : null}
+  {
+    items.length ? (
+      <div class="playground-masonry">
+        {items.map((item) => (
+          <figure class="playground-item">
+            {
+              item.mediaType === 'video' && item.video?.asset?.url ? (
+                item.videoMode === 'film' ? (
+                  <video
+                    class="image-reveal playground-film"
+                    controls
+                    playsinline
+                    preload="metadata"
+                  >
+                    <source src={item.video.asset.url} />
+                  </video>
+                ) : (
+                  <video
+                    class="image-reveal playground-loop"
+                    autoplay
+                    muted
+                    loop
+                    playsinline
+                    preload="metadata"
+                  >
+                    <source src={item.video.asset.url} />
+                  </video>
+                )
+              ) : item.image?.asset?.url ? (
+                <img
+                  class="image-reveal"
+                  src={sanityImage(item.image.asset.url, 800)}
+                  srcset={sanitySrcset(item.image.asset.url)}
+                  sizes="(max-width: 700px) 50vw, (max-width: 900px) 50vw, 25vw"
+                  width={item.image.asset.metadata?.dimensions?.width}
+                  height={item.image.asset.metadata?.dimensions?.height}
+                  alt={item.alt || item.image.asset.originalFilename || ''}
+                  loading="lazy"
+                  decoding="async"
+                />
+              ) : null
+            }
+          </figure>
+        ))}
+      </div>
+    ) : null
+  }
 </div>
 
 <style>
@@ -104,13 +171,12 @@ const videos = playground?.videos?.filter((item) => !item.hidden) ?? []
   .playground-masonry {
     columns: 4;
     column-gap: var(--playground-gap);
+
     padding:
       var(--playground-top-space)
       var(--playground-gutter)
       var(--playground-gutter);
   }
-
-  .playground-videos { padding-top: 0; }
 
   .playground-item {
     display: inline-block;
@@ -128,7 +194,9 @@ const videos = playground?.videos?.filter((item) => !item.hidden) ?? []
     height: auto;
   }
 
-  .playground-loop { pointer-events: none; }
+  .playground-loop {
+    pointer-events: none;
+  }
 
   .image-reveal {
     opacity: 0;
@@ -153,7 +221,9 @@ const videos = playground?.videos?.filter((item) => !item.hidden) ?? []
   }
 
   @media (max-width: 900px) {
-    .playground-masonry { columns: 2; }
+    .playground-masonry {
+      columns: 2;
+    }
   }
 
   @media (max-width: 700px) {
@@ -166,8 +236,9 @@ const videos = playground?.videos?.filter((item) => !item.hidden) ?? []
         0;
     }
 
-    .playground-videos { padding-top: 0; }
-    .playground-item { margin-bottom: var(--playground-gap-mobile); }
+    .playground-item {
+      margin-bottom: var(--playground-gap-mobile);
+    }
   }
 </style>
 
@@ -184,7 +255,10 @@ if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
         const media = entry.target
 
         const reveal = () => {
-          requestAnimationFrame(() => media.classList.add('is-visible'))
+          requestAnimationFrame(() => {
+            media.classList.add('is-visible')
+          })
+
           observer.unobserve(media)
         }
 
@@ -215,7 +289,10 @@ const loopObserver = new IntersectionObserver(
 
       if (entry.isIntersecting) {
         const playPromise = video.play()
-        if (playPromise instanceof Promise) playPromise.catch(() => {})
+
+        if (playPromise instanceof Promise) {
+          playPromise.catch(() => {})
+        }
       } else if (!video.paused) {
         video.pause()
       }
